@@ -11,6 +11,7 @@ import {
   FaPlus, FaEdit, FaTrash, FaEye, FaCalendar, FaClock, FaTag,
   FaArrowLeft, FaSave, FaTimes, FaImage, FaSearch
 } from 'react-icons/fa';
+import BlockNoteEditor from '@/components/editor/BlockNoteEditor';
 
 const BlogManagement = () => {
   const [blogs, setBlogs] = useState([
@@ -333,12 +334,13 @@ const BlogManagement = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2">Content</label>
-                    <Textarea
-                      value={formData.content}
-                      onChange={(e) => setFormData({...formData, content: e.target.value})}
-                      placeholder="Write your blog content here..."
-                      className="cyber-border bg-card min-h-32"
-                    />
+                    {(showAddForm || editingBlog) ? (
+                      <BlockNoteEditor
+                        value={formData.content}
+                        onChange={val => setFormData({...formData, content: val})}
+                        className="cyber-border bg-card min-h-32"
+                      />
+                    ) : null}
                   </div>
                 </div>
               </div>

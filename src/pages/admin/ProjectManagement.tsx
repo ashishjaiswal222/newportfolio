@@ -13,6 +13,7 @@ import {
   FaArrowLeft, FaCode, FaCalendar, FaTags 
 } from 'react-icons/fa';
 import { useToast } from '@/hooks/use-toast';
+import BlockNoteEditor from '@/components/editor/BlockNoteEditor';
 
 interface Project {
   id: number;
@@ -310,15 +311,11 @@ const ProjectEditor: React.FC<{
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={editedProject.description}
-          onChange={(e) => setEditedProject({...editedProject, description: e.target.value})}
-          className="cyber-border h-32"
-        />
-      </div>
+      <BlockNoteEditor
+        value={editedProject.description}
+        onChange={val => setEditedProject({...editedProject, description: val})}
+        className="cyber-border h-32"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
