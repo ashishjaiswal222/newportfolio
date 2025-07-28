@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { Contact } from '../models/Contact';
 import { ContactReply } from '../models/ContactReply';
 import { AdminUser } from '../models/AdminUser';
+import { Testimonial } from '../models/Testimonial';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -14,7 +15,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true, // For dev only; use migrations in prod
   logging: false,
-  entities: [Contact, ContactReply, AdminUser],
+  entities: [Contact, ContactReply, AdminUser, Testimonial],
   migrations: [],
   subscribers: [],
 }); 

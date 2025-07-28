@@ -17,12 +17,17 @@ export const useTestimonials = () => {
       setTestimonials(response.testimonials);
       setError(null);
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to fetch testimonials');
-      toast({
-        title: "Error",
-        description: "Failed to load testimonials",
-        variant: "destructive",
-      });
+      const errorMessage = error.response?.data?.message || 'Failed to fetch testimonials';
+      setError(errorMessage);
+      
+      // Don't show toast for rate limiting errors to avoid spam
+      if (!errorMessage.includes('Too many requests')) {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

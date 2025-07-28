@@ -7,7 +7,6 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -28,78 +27,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Try to refresh session on mount
   useEffect(() => {
+    let isMounted = true;
     const initAuth = async () => {
+      setIsLoading(true);
       try {
-        const token = localStorage.getItem('authToken');
-        if (token) {
-          const userData = await authAPI.getCurrentUser();
-          setUser(userData.user);
-        }
-      } catch (error) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
+        // Try to get user profile (will auto-refresh if needed)
+        const userData = await authAPI.getCurrentUser();
+        if (isMounted) setUser(userData.admin || userData.user);
+      } catch (error: any) {
+        if (isMounted) setUser(null);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
-
     initAuth();
+    return () => { isMounted = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      const response = await authAPI.login({ email, password });
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      await authAPI.login({ email, password });
+      // After login, fetch user profile
+      const userData = await authAPI.getCurrentUser();
+      setUser(userData.admin || userData.user);
       toast({
         title: "Welcome back!",
         description: "You have been successfully logged in.",
       });
     } catch (error: any) {
+      setUser(null);
       toast({
         title: "Login failed",
         description: error.response?.data?.message || "Invalid credentials",
         variant: "destructive",
       });
       throw error;
-    }
-  };
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      const response = await authAPI.register({ name, email, password });
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
-      toast({
-        title: "Account created!",
-        description: "Your account has been successfully created.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Registration failed",
-        description: error.response?.data?.message || "Registration failed",
-        variant: "destructive",
-      });
-      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
       await authAPI.logout();
-    } catch (error) {
-      // Continue with logout even if API call fails
-    } finally {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
       setUser(null);
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -107,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authAPI.updateProfile(data);
       setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
@@ -122,22 +104,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Try to refresh session (e.g. after token refresh)
   const refreshUser = async () => {
     try {
       const userData = await authAPI.getCurrentUser();
-      setUser(userData.user);
-      localStorage.setItem('user', JSON.stringify(userData.user));
+      setUser(userData.admin || userData.user);
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      setUser(null);
     }
   };
+
+  // Auto-refresh access token on 401 (optional: can be handled in api.ts as well)
+  // ...
 
   const value = {
     user,
     isLoading,
     isAuthenticated: !!user,
     login,
-    register,
     logout,
     updateProfile,
     refreshUser,

@@ -9,52 +9,8 @@ import { useTestimonials } from "@/hooks/useTestimonials";
 import TestimonialForm from "@/components/TestimonialForm";
 
 const TestimonialsSection = () => {
-  const testimonials = [
-    {
-      id: 1,
-      name: "Rajesh Kumar",
-      role: "Senior Software Engineer",
-      company: "Tech Innovations Ltd",
-      image: "/api/placeholder/100/100",
-      rating: 5,
-      text: "Ashish demonstrated exceptional problem-solving skills during our IoT project. His ability to integrate frontend and backend technologies seamlessly is remarkable. A true full-stack developer with great attention to detail.",
-      project: "Smart Plant Monitoring System",
-      linkedin: "https://linkedin.com/in/placeholder"
-    },
-    {
-      id: 2,
-      name: "Priya Sharma",
-      role: "Project Manager",
-      company: "Digital Solutions Inc",
-      image: "/api/placeholder/100/100",
-      rating: 5,
-      text: "Working with Ashish on the environmental monitoring project was amazing. He delivered high-quality code on time and was always ready to take on new challenges. His Node.js and React expertise really shined through.",
-      project: "AirVibe Environmental Monitor",
-      linkedin: "https://linkedin.com/in/placeholder"
-    },
-    {
-      id: 3,
-      name: "Dr. Amit Patel",
-      role: "Technical Lead",
-      company: "Innovation Hub",
-      image: "/api/placeholder/100/100",
-      rating: 5,
-      text: "Ashish's understanding of modern web technologies and his ability to implement complex features is impressive. His portfolio website itself is a testament to his skills in creating engaging user experiences.",
-      project: "Portfolio Development",
-      linkedin: "https://linkedin.com/in/placeholder"
-    },
-    {
-      id: 4,
-      name: "Sneha Gupta",
-      role: "UI/UX Designer",
-      company: "Creative Studios",
-      image: "/api/placeholder/100/100",
-      rating: 4,
-      text: "Ashish perfectly translated our design concepts into beautiful, responsive interfaces. His knowledge of CSS frameworks and attention to pixel-perfect implementation made our collaboration smooth and efficient.",
-      project: "E-Commerce Platform",
-      linkedin: "https://linkedin.com/in/placeholder"
-    }
-  ];
+  const { getApprovedTestimonials, isLoading, error, refetch } = useTestimonials();
+  const testimonials = getApprovedTestimonials();
 
   const achievements = [
     { metric: "98%", label: "Client Satisfaction", color: "text-green-400" },
@@ -84,74 +40,83 @@ const TestimonialsSection = () => {
 
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          {testimonials.map((testimonial, index) => (
-            <motion.div
-              key={testimonial.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              whileHover={{ y: -5 }}
-              className="group"
-            >
-              <Card className="cyber-border p-8 h-full bg-background/30 backdrop-blur-sm hover:shadow-glow-purple transition-all duration-300">
-                {/* Quote Icon */}
-                <div className="flex justify-between items-start mb-6">
-                  <FaQuoteLeft className="text-3xl text-primary/60 group-hover:text-primary transition-colors duration-300" />
-                  <div className="flex">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <FaStar key={i} className="text-yellow-400 text-sm" />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Testimonial Text */}
-                <blockquote className="text-foreground/80 mb-6 italic leading-relaxed">
-                  "{testimonial.text}"
-                </blockquote>
-
-                {/* Project Badge */}
-                <div className="mb-6">
-                  <Badge variant="outline" className="border-accent text-accent">
-                    Project: {testimonial.project}
-                  </Badge>
-                </div>
-
-                {/* Author Info */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-12 h-12 border-2 border-primary/30">
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                        <span className="text-lg font-bold text-primary">
-                          {testimonial.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-orbitron font-bold text-foreground">
-                        {testimonial.name}
-                      </h4>
-                      <p className="text-sm text-foreground/60">
-                        {testimonial.role}
-                      </p>
-                      <div className="flex items-center text-xs text-foreground/50">
-                        <FaBuilding className="mr-1" />
-                        {testimonial.company}
-                      </div>
+          {isLoading ? (
+            <div className="col-span-2 text-center text-lg text-muted-foreground py-12">Loading testimonials...</div>
+          ) : error ? (
+            <div className="col-span-2 text-center text-red-400 py-12">{error}</div>
+          ) : testimonials.length === 0 ? (
+            <div className="col-span-2 text-center text-muted-foreground py-12">No testimonials yet. Be the first to submit one!</div>
+          ) : (
+            testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
+                className="group"
+              >
+                <Card className="cyber-border p-8 h-full bg-background/30 backdrop-blur-sm hover:shadow-glow-purple transition-all duration-300">
+                  {/* Quote Icon */}
+                  <div className="flex justify-between items-start mb-6">
+                    <FaQuoteLeft className="text-3xl text-primary/60 group-hover:text-primary transition-colors duration-300" />
+                    <div className="flex">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <FaStar key={i} className="text-yellow-400 text-sm" />
+                      ))}
                     </div>
                   </div>
-                  <a 
-                    href={testimonial.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 transition-colors duration-300"
-                  >
-                    <FaLinkedin className="text-xl" />
-                  </a>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                  {/* Testimonial Text */}
+                  <blockquote className="text-foreground/80 mb-6 italic leading-relaxed">
+                    "{testimonial.content}"
+                  </blockquote>
+                  {/* Project Badge (optional) */}
+                  {testimonial.project && (
+                    <div className="mb-6">
+                      <Badge variant="outline" className="border-accent text-accent">
+                        Project: {testimonial.project}
+                      </Badge>
+                    </div>
+                  )}
+                  {/* Author Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Avatar className="w-12 h-12 border-2 border-primary/30">
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                          <span className="text-lg font-bold text-primary">
+                            {testimonial.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-orbitron font-bold text-foreground">
+                          {testimonial.name}
+                        </h4>
+                        <p className="text-sm text-foreground/60">
+                          {testimonial.role}
+                        </p>
+                        <div className="flex items-center text-xs text-foreground/50">
+                          <FaBuilding className="mr-1" />
+                          {testimonial.company}
+                        </div>
+                      </div>
+                    </div>
+                    {testimonial.linkedin && (
+                      <a 
+                        href={testimonial.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 transition-colors duration-300"
+                      >
+                        <FaLinkedin className="text-xl" />
+                      </a>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            ))
+          )}
         </div>
 
         {/* Achievement Stats */}

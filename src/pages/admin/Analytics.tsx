@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { 
-  FaUsers, FaEye, FaDownload, FaGithub, FaLinkedin, FaProjectDiagram,
-  FaArrowLeft, FaArrowUp, FaArrowDown, FaChartLine, FaCalendar
+import { Button } from '@/components/ui/button';
+import VisitorStats from '@/components/analytics/VisitorStats';
+import TestimonialAnalytics from '@/components/analytics/TestimonialAnalytics';
+import KeyMetrics from '@/components/analytics/KeyMetrics';
+import VisitorTrends from '@/components/analytics/VisitorTrends';
+import DeviceBreakdown from '@/components/analytics/DeviceBreakdown';
+import ProjectAnalytics from '@/components/analytics/ProjectAnalytics';
+import TrafficSources from '@/components/analytics/TrafficSources';
+import TopPages from '@/components/analytics/TopPages';
+import SeoPerformance from '@/components/analytics/SeoPerformance';
+import { useTestimonials } from '@/hooks/useTestimonials';
+import {
+  FaUsers, FaEye, FaDownload, FaProjectDiagram
 } from 'react-icons/fa';
 import {
   Chart as ChartJS,
@@ -19,7 +27,6 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -36,8 +43,6 @@ ChartJS.register(
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [realTimeVisitors, setRealTimeVisitors] = useState(24);
-
-  // Simulate real-time data updates
   useEffect(() => {
     const interval = setInterval(() => {
       setRealTimeVisitors(prev => Math.max(1, prev + Math.floor(Math.random() * 3) - 1));
@@ -45,59 +50,17 @@ const Analytics = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Analytics data
+  const { testimonials, isLoading: testimonialsLoading } = useTestimonials();
+
+  // Key metrics data
   const stats = [
-    { 
-      title: 'Total Visitors', 
-      value: '12,847', 
-      change: '+12.5%', 
-      isPositive: true, 
-      icon: FaUsers,
-      color: 'text-neon-cyan'
-    },
-    { 
-      title: 'Page Views', 
-      value: '24,356', 
-      change: '+8.2%', 
-      isPositive: true, 
-      icon: FaEye,
-      color: 'text-neon-purple'
-    },
-    { 
-      title: 'CV Downloads', 
-      value: '1,267', 
-      change: '+15.7%', 
-      isPositive: true, 
-      icon: FaDownload,
-      color: 'text-neon-green'
-    },
-    { 
-      title: 'Project Views', 
-      value: '8,943', 
-      change: '+5.4%', 
-      isPositive: true, 
-      icon: FaProjectDiagram,
-      color: 'text-neon-pink'
-    }
+    { title: 'Total Visitors', value: '12,847', change: '+12.5%', isPositive: true, icon: FaUsers, color: 'text-neon-cyan' },
+    { title: 'Page Views', value: '24,356', change: '+8.2%', isPositive: true, icon: FaEye, color: 'text-neon-purple' },
+    { title: 'CV Downloads', value: '1,267', change: '+15.7%', isPositive: true, icon: FaDownload, color: 'text-neon-green' },
+    { title: 'Project Views', value: '8,943', change: '+5.4%', isPositive: true, icon: FaProjectDiagram, color: 'text-neon-pink' },
   ];
 
-  const sourceData = [
-    { source: 'LinkedIn', visitors: 4532, percentage: 35.2 },
-    { source: 'GitHub', visitors: 3241, percentage: 25.2 },
-    { source: 'Direct', visitors: 2154, percentage: 16.8 },
-    { source: 'Google', visitors: 1876, percentage: 14.6 },
-    { source: 'Other', visitors: 1044, percentage: 8.1 }
-  ];
-
-  const topPages = [
-    { page: 'Home', views: 8943, uniqueViews: 6234 },
-    { page: 'Projects', views: 5678, uniqueViews: 4123 },
-    { page: 'About', views: 3456, uniqueViews: 2567 },
-    { page: 'Contact', views: 2345, uniqueViews: 1876 },
-    { page: 'Skills', views: 1234, uniqueViews: 987 }
-  ];
-
-  // Chart data
+  // Chart and analytics data
   const visitorChartData = {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [
@@ -123,7 +86,6 @@ const Analytics = () => {
       }
     ]
   };
-
   const deviceChartData = {
     labels: ['Desktop', 'Mobile', 'Tablet'],
     datasets: [
@@ -143,7 +105,6 @@ const Analytics = () => {
       }
     ]
   };
-
   const projectsChartData = {
     labels: ['IoT Plant Monitor', 'AirVibe', 'Portfolio', 'E-Commerce', 'Other'],
     datasets: [
@@ -168,7 +129,6 @@ const Analytics = () => {
       }
     ]
   };
-
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -198,13 +158,12 @@ const Analytics = () => {
       }
     }
   };
-
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'bottom' as const,
+        position: 'bottom',
         labels: {
           color: 'hsl(var(--foreground))',
           padding: 20,
@@ -212,6 +171,20 @@ const Analytics = () => {
       }
     }
   };
+  const sourceData = [
+    { source: 'LinkedIn', visitors: 4532, percentage: 35.2 },
+    { source: 'GitHub', visitors: 3241, percentage: 25.2 },
+    { source: 'Direct', visitors: 2154, percentage: 16.8 },
+    { source: 'Google', visitors: 1876, percentage: 14.6 },
+    { source: 'Other', visitors: 1044, percentage: 8.1 }
+  ];
+  const topPages = [
+    { page: 'Home', views: 8943, uniqueViews: 6234 },
+    { page: 'Projects', views: 5678, uniqueViews: 4123 },
+    { page: 'About', views: 3456, uniqueViews: 2567 },
+    { page: 'Contact', views: 2345, uniqueViews: 1876 },
+    { page: 'Skills', views: 1234, uniqueViews: 987 }
+  ];
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
@@ -240,212 +213,26 @@ const Analytics = () => {
             </select>
             <Link to="/admin">
               <Button variant="outline" className="cyber-button">
-                <FaArrowLeft className="mr-2" />
                 Back to Dashboard
               </Button>
             </Link>
           </div>
         </motion.div>
 
-        {/* Real-time Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <Card className="cyber-border p-6 bg-gradient-to-r from-primary/10 to-secondary/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-orbitron text-lg font-bold text-primary mb-2">Real-time Visitors</h3>
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl font-bold text-gradient-cyber">{realTimeVisitors}</span>
-                  <div className="flex items-center text-green-400">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-                    <span className="text-sm">Live</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-foreground/60">Average Session: 4m 32s</p>
-                <p className="text-sm text-foreground/60">Bounce Rate: 23.4%</p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="cyber-border p-6 hover:glow-cyan transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <stat.icon className={`text-2xl ${stat.color}`} />
-                  <div className={`flex items-center text-sm ${stat.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                    {stat.isPositive ? <FaArrowUp className="mr-1" /> : <FaArrowDown className="mr-1" />}
-                    {stat.change}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold font-orbitron">{stat.value}</h3>
-                  <p className="text-foreground/60 text-sm">{stat.title}</p>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Charts Row */}
+        {/* Modularized Analytics Sections */}
+        <VisitorStats realTimeVisitors={realTimeVisitors} />
+        <TestimonialAnalytics testimonials={testimonials} isLoading={testimonialsLoading} />
+        <KeyMetrics stats={stats} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Visitor Trends */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="cyber-border p-6">
-              <h3 className="font-orbitron text-xl font-bold text-primary mb-6 flex items-center">
-                <FaChartLine className="mr-2" />
-                Visitor Trends
-              </h3>
-              <div className="h-64">
-                <Line data={visitorChartData} options={chartOptions} />
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Device Breakdown */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="cyber-border p-6">
-              <h3 className="font-orbitron text-xl font-bold text-primary mb-6">
-                Device Breakdown
-              </h3>
-              <div className="h-64">
-                <Doughnut data={deviceChartData} options={doughnutOptions} />
-              </div>
-            </Card>
-          </motion.div>
+          <VisitorTrends visitorChartData={visitorChartData} chartOptions={chartOptions} />
+          <DeviceBreakdown deviceChartData={deviceChartData} doughnutOptions={doughnutOptions} />
         </div>
-
-        {/* Project Analytics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mb-8"
-        >
-          <Card className="cyber-border p-6">
-            <h3 className="font-orbitron text-xl font-bold text-primary mb-6 flex items-center">
-              <FaProjectDiagram className="mr-2" />
-              Project Performance
-            </h3>
-            <div className="h-64">
-              <Bar data={projectsChartData} options={chartOptions} />
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Traffic Sources & Top Pages */}
+        <ProjectAnalytics projectsChartData={projectsChartData} chartOptions={chartOptions} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Traffic Sources */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="cyber-border p-6">
-              <h3 className="font-orbitron text-xl font-bold text-primary mb-6">
-                Traffic Sources
-              </h3>
-              <div className="space-y-4">
-                {sourceData.map((source, index) => (
-                  <div key={source.source} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      {source.source === 'LinkedIn' && <FaLinkedin className="text-blue-400" />}
-                      {source.source === 'GitHub' && <FaGithub className="text-foreground" />}
-                      {source.source === 'Direct' && <FaUsers className="text-green-400" />}
-                      {source.source === 'Google' && <div className="w-4 h-4 bg-blue-500 rounded-full" />}
-                      {source.source === 'Other' && <div className="w-4 h-4 bg-gray-400 rounded-full" />}
-                      <span className="font-medium">{source.source}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">{source.visitors.toLocaleString()}</div>
-                      <div className="text-sm text-foreground/60">{source.percentage}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Top Pages */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <Card className="cyber-border p-6">
-              <h3 className="font-orbitron text-xl font-bold text-primary mb-6">
-                Top Pages
-              </h3>
-              <div className="space-y-4">
-                {topPages.map((page, index) => (
-                  <div key={page.page} className="flex items-center justify-between p-3 rounded border border-foreground/20 hover:border-primary/50 transition-colors duration-300">
-                    <div>
-                      <div className="font-medium">{page.page}</div>
-                      <div className="text-sm text-foreground/60">{page.uniqueViews} unique views</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">{page.views.toLocaleString()}</div>
-                      <div className="text-sm text-foreground/60">total views</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
+          <TrafficSources sourceData={sourceData} />
+          <TopPages topPages={topPages} />
         </div>
-
-        {/* SEO & Performance Metrics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8"
-        >
-          <Card className="cyber-border p-6">
-            <h3 className="font-orbitron text-xl font-bold text-primary mb-6">
-              SEO & Performance Metrics
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">95</div>
-                <div className="text-sm text-foreground/60">Performance Score</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">98</div>
-                <div className="text-sm text-foreground/60">SEO Score</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-400">2.3s</div>
-                <div className="text-sm text-foreground/60">Load Time</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">94</div>
-                <div className="text-sm text-foreground/60">Accessibility</div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+        <SeoPerformance />
       </div>
     </div>
   );

@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Portfolio from "./pages/Portfolio";
 import BlogList from "./pages/BlogList";
 import BlogDetail from "./pages/BlogDetail";
-import UserProfilePage from "./pages/UserProfile";
 import ProjectList from "./pages/ProjectList";
+import UserProfile from "./pages/UserProfile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProjectManagement from "./pages/admin/ProjectManagement";
 import ContentManagement from "./pages/admin/ContentManagement";
@@ -17,6 +17,8 @@ import Analytics from "./pages/admin/Analytics";
 import TestimonialManagement from "./pages/admin/TestimonialManagement";
 import ProfileManagement from "./pages/admin/ProfileManagement";
 import NotFound from "./pages/NotFound";
+import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
+import ResetPassword from "./pages/admin/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -29,18 +31,18 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Portfolio />} />
           <Route path="/blogs" element={<BlogList />} />
-          <Route path="/blog/:id" element={<BlogDetail />} />
-          <Route path="/profile" element={<UserProfilePage />} />
+          <Route path="/blogs/:id" element={<BlogDetail />} />
           <Route path="/projects" element={<ProjectList />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/projects" element={<ProjectManagement />} />
-          <Route path="/admin/content" element={<ContentManagement />} />
-          <Route path="/admin/blog" element={<BlogManagement />} />
-          <Route path="/admin/contacts" element={<ContactManagement />} />
-          <Route path="/admin/analytics" element={<Analytics />} />
-          <Route path="/admin/testimonials" element={<TestimonialManagement />} />
-          <Route path="/admin/profile" element={<ProfileManagement />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
+          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+          <Route path="/admin/projects" element={<AdminProtectedRoute><ProjectManagement /></AdminProtectedRoute>} />
+          <Route path="/admin/content" element={<AdminProtectedRoute><ContentManagement /></AdminProtectedRoute>} />
+          <Route path="/admin/blog" element={<AdminProtectedRoute><BlogManagement /></AdminProtectedRoute>} />
+          <Route path="/admin/contacts" element={<AdminProtectedRoute><ContactManagement /></AdminProtectedRoute>} />
+          <Route path="/admin/analytics" element={<AdminProtectedRoute><Analytics /></AdminProtectedRoute>} />
+          <Route path="/admin/testimonials" element={<AdminProtectedRoute><TestimonialManagement /></AdminProtectedRoute>} />
+          <Route path="/admin/profile" element={<AdminProtectedRoute><ProfileManagement /></AdminProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

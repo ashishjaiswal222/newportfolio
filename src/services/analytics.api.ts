@@ -46,37 +46,37 @@ export interface UserAnalytics {
 
 export const analyticsAPI = {
   getOverview: async () => {
-    const response = await api.get('/analytics/overview');
+    const response = await api.get('/api/analytics/overview');
     return response.data;
   },
 
   getBlogAnalytics: async () => {
-    const response = await api.get('/analytics/blogs');
+    const response = await api.get('/api/analytics/blogs');
     return response.data;
   },
 
   getUserAnalytics: async () => {
-    const response = await api.get('/analytics/users');
+    const response = await api.get('/api/analytics/users');
     return response.data;
   },
 
   getPageAnalytics: async () => {
-    const response = await api.get('/analytics/pages');
+    const response = await api.get('/api/analytics/pages');
     return response.data;
   },
 
   getTrafficSources: async () => {
-    const response = await api.get('/analytics/sources');
+    const response = await api.get('/api/analytics/sources');
     return response.data;
   },
 
   getPerformanceMetrics: async () => {
-    const response = await api.get('/analytics/performance');
+    const response = await api.get('/api/analytics/performance');
     return response.data;
   },
 
   getDashboardSummary: async () => {
-    const response = await api.get('/admin/summary');
+    const response = await api.get('/api/admin/summary');
     return response.data;
   },
 };

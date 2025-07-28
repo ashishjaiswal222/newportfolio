@@ -98,7 +98,7 @@ export const createContact = async (req: Request, res: Response) => {
     });
     const mailOptions = {
       from: `"${COMPANY_SENDER}" <${process.env.COMPANY_EMAIL}>`,
-      to: process.env.ADMIN_EMAIL || undefined,
+      to: process.env.ADMIN_LOGIN_USERNAME || undefined,
       bcc: BCC_EMAIL ? BCC_EMAIL : undefined,
       subject: `New Contact Submission: ${subject}`,
       html,
@@ -108,7 +108,7 @@ export const createContact = async (req: Request, res: Response) => {
       await transporter.sendMail(mailOptions);
     }
 
-    res.status(201).json({ message: 'Contact created and admin notified.' });
+    res.status(201).json(contact);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to create contact.' });
@@ -221,7 +221,7 @@ export const replyToContact = async (req: Request, res: Response) => {
     const mailOptions = {
       from: `"${COMPANY_SENDER}" <${process.env.COMPANY_EMAIL}>`,
       to: contact.email,
-      cc: process.env.ADMIN_EMAIL || undefined,
+      cc: process.env.ADMIN_LOGIN_USERNAME || undefined,
       bcc: BCC_EMAIL ? BCC_EMAIL : undefined,
       subject: `Reply to your contact: ${contact.subject}`,
       html,

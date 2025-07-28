@@ -4,8 +4,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FaLock, FaUser } from 'react-icons/fa';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FaLock, FaUser, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { authAPI } from '@/services/auth.api';
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -15,31 +18,46 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    try {
+      await login(username, password);
+      onLogin();
+    } catch (error) {
+      // Error handled by AuthContext toast
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Simple authentication for demo
-    if (username === 'ashishjaiswal0701@gmail.com' && password === '@fusu649Ib') {
-      setTimeout(() => {
-        onLogin();
-        setLoading(false);
-        toast({
-          title: "Login Successful",
-          description: "Welcome to the admin panel!",
-        });
-      }, 1000);
-    } else {
-      setTimeout(() => {
-        setLoading(false);
-        toast({
-          title: "Login Failed",
-          description: "Invalid credentials",
-          variant: "destructive",
-        });
-      }, 1000);
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      await authAPI.forgotPassword(resetEmail);
+      toast({
+        title: "Reset link sent",
+        description: "If an account with that email exists, a password reset link has been sent.",
+      });
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } catch (error: any) {
+      toast({
+        title: "Reset link sent",
+        description: "If an account with that email exists, a password reset link has been sent.",
+      });
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -102,13 +120,20 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
                 <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 cyber-border bg-background/50 focus:shadow-glow-cyan"
+                  className="pl-10 pr-10 cyber-border bg-background/50 focus:shadow-glow-cyan"
                   placeholder="Enter password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary hover:text-primary/80"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
             </motion.div>
 
@@ -116,6 +141,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
+              className="space-y-4"
             >
               <Button
                 type="submit"
@@ -132,6 +158,59 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
                   "ACCESS GRANTED"
                 )}
               </Button>
+
+              <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full cyber-border text-foreground/60 hover:text-foreground"
+                  >
+                    Forgot Password?
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="cyber-border bg-background/95 backdrop-blur-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-orbitron text-gradient-cyber">
+                      Reset Password
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div>
+                      <Label htmlFor="reset-email" className="text-foreground font-medium">
+                        Email Address
+                      </Label>
+                      <div className="relative mt-2">
+                        <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="pl-10 cyber-border bg-background/50 focus:shadow-glow-cyan"
+                          placeholder="Enter your email"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full cyber-button bg-primary text-primary-foreground"
+                      disabled={resetLoading}
+                    >
+                      {resetLoading ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-5 h-5 border-2 border-background border-t-transparent rounded-full"
+                        />
+                      ) : (
+                        "Send Reset Link"
+                      )}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </motion.div>
           </form>
 

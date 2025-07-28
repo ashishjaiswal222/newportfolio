@@ -30,27 +30,27 @@ export interface UpdateContactStatusData {
 
 export const contactAPI = {
   getContacts: async () => {
-    const response = await api.get('/contacts');
+    const response = await api.get('/api/contacts');
     return response.data;
   },
 
   getContact: async (id: string) => {
-    const response = await api.get(`/contacts/${id}`);
+    const response = await api.get(`/api/contacts/${id}`);
     return response.data;
   },
 
   createContact: async (data: CreateContactData) => {
-    const response = await api.post('/contacts', data);
+    const response = await api.post('/api/contacts', data);
     return response.data;
   },
 
   updateContactStatus: async (id: string, data: UpdateContactStatusData) => {
-    const response = await api.put(`/contacts/${id}/status`, data);
+    const response = await api.put(`/api/contacts/${id}/status`, data);
     return response.data;
   },
 
   deleteContact: async (id: string) => {
-    const response = await api.delete(`/contacts/${id}`);
+    const response = await api.delete(`/api/contacts/${id}`);
     return response.data;
   },
 
@@ -62,7 +62,7 @@ export const contactAPI = {
         formData.append('attachments', file);
       });
     }
-    const response = await api.post(`/contacts/${id}/reply`, formData, {
+    const response = await api.post(`/api/contacts/${id}/reply`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

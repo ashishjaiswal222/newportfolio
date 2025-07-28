@@ -38,37 +38,37 @@ export interface UpdateProjectData extends Partial<CreateProjectData> {
 
 export const projectAPI = {
   getProjects: async () => {
-    const response = await api.get('/projects');
+    const response = await api.get('/api/projects');
     return response.data;
   },
 
   getFeaturedProjects: async () => {
-    const response = await api.get('/projects/featured');
+    const response = await api.get('/api/projects/featured');
     return response.data;
   },
 
   getProject: async (id: string) => {
-    const response = await api.get(`/projects/${id}`);
+    const response = await api.get(`/api/projects/${id}`);
     return response.data;
   },
 
   createProject: async (data: CreateProjectData) => {
-    const response = await api.post('/projects', data);
+    const response = await api.post('/api/projects', data);
     return response.data;
   },
 
   updateProject: async (id: string, data: UpdateProjectData) => {
-    const response = await api.put(`/projects/${id}`, data);
+    const response = await api.put(`/api/projects/${id}`, data);
     return response.data;
   },
 
   deleteProject: async (id: string) => {
-    const response = await api.delete(`/projects/${id}`);
+    const response = await api.delete(`/api/projects/${id}`);
     return response.data;
   },
 
   toggleFeatured: async (id: string) => {
-    const response = await api.patch(`/projects/${id}/featured`);
+    const response = await api.patch(`/api/projects/${id}/featured`);
     return response.data;
   },
 };

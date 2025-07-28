@@ -74,98 +74,98 @@ export interface ModerateCommentData {
 export const blogAPI = {
   // Blog CRUD
   getBlogs: async (query?: BlogQuery) => {
-    const response = await api.get('/blogs', { params: query });
+    const response = await api.get('/api/blogs', { params: query });
     return response.data;
   },
 
   getFeaturedBlogs: async () => {
-    const response = await api.get('/blogs/featured');
+    const response = await api.get('/api/blogs/featured');
     return response.data;
   },
 
   getBlog: async (id: string) => {
-    const response = await api.get(`/blogs/${id}`);
+    const response = await api.get(`/api/blogs/${id}`);
     return response.data;
   },
 
   getRelatedBlogs: async (id: string) => {
-    const response = await api.get(`/blogs/${id}/related`);
+    const response = await api.get(`/api/blogs/${id}/related`);
     return response.data;
   },
 
   createBlog: async (data: CreateBlogData) => {
-    const response = await api.post('/blogs', data);
+    const response = await api.post('/api/blogs', data);
     return response.data;
   },
 
   updateBlog: async (id: string, data: UpdateBlogData) => {
-    const response = await api.put(`/blogs/${id}`, data);
+    const response = await api.put(`/api/blogs/${id}`, data);
     return response.data;
   },
 
   updateBlogStatus: async (id: string, status: 'published' | 'draft') => {
-    const response = await api.patch(`/blogs/${id}/status`, { status });
+    const response = await api.patch(`/api/blogs/${id}/status`, { status });
     return response.data;
   },
 
   updateBlogSEO: async (id: string, seoData: any) => {
-    const response = await api.put(`/blogs/${id}/seo`, seoData);
+    const response = await api.put(`/api/blogs/${id}/seo`, seoData);
     return response.data;
   },
 
   deleteBlog: async (id: string) => {
-    const response = await api.delete(`/blogs/${id}`);
+    const response = await api.delete(`/api/blogs/${id}`);
     return response.data;
   },
 
   togglePin: async (id: string) => {
-    const response = await api.put(`/blogs/${id}/pin`);
+    const response = await api.put(`/api/blogs/${id}/pin`);
     return response.data;
   },
 
   likeBlog: async (id: string) => {
-    const response = await api.post(`/blogs/${id}/like`);
+    const response = await api.post(`/api/blogs/${id}/like`);
     return response.data;
   },
 
   bookmarkBlog: async (id: string) => {
-    const response = await api.post(`/blogs/${id}/bookmark`);
+    const response = await api.post(`/api/blogs/${id}/bookmark`);
     return response.data;
   },
 
   shareBlog: async (id: string) => {
-    const response = await api.post(`/blogs/${id}/share`);
+    const response = await api.post(`/api/blogs/${id}/share`);
     return response.data;
   },
 
   getBlogAnalytics: async (id: string) => {
-    const response = await api.get(`/blogs/${id}/analytics`);
+    const response = await api.get(`/api/blogs/${id}/analytics`);
     return response.data;
   },
 
   // Comments
   getComments: async (blogId: string) => {
-    const response = await api.get(`/blogs/${blogId}/comments`);
+    const response = await api.get(`/api/blogs/${blogId}/comments`);
     return response.data;
   },
 
   createComment: async (blogId: string, data: CreateCommentData) => {
-    const response = await api.post(`/blogs/${blogId}/comments`, data);
+    const response = await api.post(`/api/blogs/${blogId}/comments`, data);
     return response.data;
   },
 
   updateComment: async (id: string, content: string) => {
-    const response = await api.put(`/comments/${id}`, { content });
+    const response = await api.put(`/api/comments/${id}`, { content });
     return response.data;
   },
 
   deleteComment: async (id: string) => {
-    const response = await api.delete(`/comments/${id}`);
+    const response = await api.delete(`/api/comments/${id}`);
     return response.data;
   },
 
   moderateComment: async (id: string, data: ModerateCommentData) => {
-    const response = await api.put(`/comments/${id}/moderate`, data);
+    const response = await api.put(`/api/comments/${id}/moderate`, data);
     return response.data;
   },
 };
