@@ -47,13 +47,6 @@ app.use('/api/admin/projects', requireAuth, projectRoutes);
 app.use('/api/admin/blogs', requireAuth, blogRoutes);
 app.use('/api/admin/analytics', requireAuth, analyticsRoutes);
 
-// Initialize TypeORM connection
-AppDataSource.initialize()
-  .then(() => {
-    console.log('Database connected');
-  })
-  .catch((err: Error) => {
-    console.error('Database connection error:', err);
-  });
+// Database initialization is now handled in server.ts
 
 export default app;

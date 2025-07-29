@@ -6,7 +6,7 @@ import { JWTPayload } from './auth.service';
 export class AuthMiddleware {
   authenticateToken = (req: Request, res: Response, next: NextFunction) => {
     // Try to get token from Authorization header
-    let token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
+    const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
       return res.status(401).json({ message: 'Access token required' });
@@ -77,7 +77,7 @@ export class AuthMiddleware {
     }
 
     const attempts = req.app.locals.loginAttempts.get(clientIP) || [];
-    const recentAttempts = attempts.filter(timestamp => now - timestamp < windowMs);
+    const recentAttempts = attempts.filter((timestamp: number) => now - timestamp < windowMs);
 
     if (recentAttempts.length >= maxAttempts) {
       return res.status(429).json({ 

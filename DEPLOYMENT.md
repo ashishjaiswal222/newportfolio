@@ -1,285 +1,410 @@
-# Admin Authentication System - Deployment Guide
+# 🚀 Deployment Guide
 
-## 🚀 Complete Admin Authentication System
+This guide covers deployment options for both frontend and backend components of the Ashish AI Portfolio Nexus.
 
-This guide covers the deployment of the enhanced admin authentication system with password reset functionality.
+## 📋 Prerequisites
 
-## 📋 System Overview
+- Node.js >= 18.0.0
+- npm >= 8.0.0
+- PostgreSQL database
+- Git repository access
 
-### Features Implemented:
-- ✅ **Secure Admin Login** with email/password
-- ✅ **HttpOnly Cookie-based JWT Authentication**
-- ✅ **Password Reset via Email**
-- ✅ **Rate Limiting & Brute Force Protection**
-- ✅ **Audit Logging for Login Attempts**
-- ✅ **Strong Password Policy**
-- ✅ **Session Management with Auto-refresh**
-- ✅ **Protected Admin Routes**
+## 🌐 Frontend Deployment
 
-### Admin Credentials:
-- **Email**: `ashishjaiswal0701@gmail.com`
-- **Password**: `@fusu649Ib`
+### Option 1: Vercel (Recommended)
 
-## 🛠️ Backend Setup
+1. **Connect Repository**
+   ```bash
+   # Install Vercel CLI
+   npm i -g vercel
+   
+   # Login to Vercel
+   vercel login
+   ```
 
-### 1. Environment Configuration
+2. **Configure Environment Variables**
+   - Go to Vercel Dashboard → Project Settings → Environment Variables
+   - Add: `VITE_API_URL=https://your-backend-url.com`
 
-Create a `.env` file in the `backend/` directory:
+3. **Deploy**
+   ```bash
+   # Deploy to Vercel
+   vercel --prod
+   ```
 
-```bash
-# Database Configuration
-DB_HOST=localhost
+### Option 2: Netlify
+
+1. **Connect Repository**
+   - Connect your GitHub repository to Netlify
+   - Set build command: `npm run build`
+   - Set publish directory: `dist`
+
+2. **Configure Environment Variables**
+   - Go to Site Settings → Environment Variables
+   - Add: `VITE_API_URL=https://your-backend-url.com`
+
+3. **Deploy**
+   - Netlify will automatically deploy on push to main branch
+
+### Option 3: GitHub Pages
+
+1. **Update vite.config.ts**
+   ```typescript
+   export default defineConfig({
+     base: '/your-repo-name/',
+     // ... other config
+   })
+   ```
+
+2. **Add GitHub Action**
+   Create `.github/workflows/deploy.yml`:
+   ```yaml
+   name: Deploy to GitHub Pages
+   on:
+     push:
+       branches: [ main ]
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - uses: actions/setup-node@v3
+           with:
+             node-version: '18'
+         - run: npm ci
+         - run: npm run build
+         - uses: peaceiris/actions-gh-pages@v3
+           with:
+             github_token: ${{ secrets.GITHUB_TOKEN }}
+             publish_dir: ./dist
+   ```
+
+## 🔧 Backend Deployment
+
+### Option 1: Railway (Recommended)
+
+1. **Connect Repository**
+   - Connect your GitHub repository to Railway
+   - Set root directory to `backend`
+
+2. **Configure Environment Variables**
+   - Add all required environment variables in Railway dashboard
+   - Set `NODE_ENV=production`
+
+3. **Deploy**
+   - Railway will automatically deploy on push to main branch
+
+### Option 2: Render
+
+1. **Create New Web Service**
+   - Connect your GitHub repository
+   - Set root directory to `backend`
+   - Build command: `npm install && npm run build`
+   - Start command: `npm start`
+
+2. **Configure Environment Variables**
+   - Add all required environment variables
+   - Set `NODE_ENV=production`
+
+### Option 3: Heroku
+
+1. **Install Heroku CLI**
+   ```bash
+   npm install -g heroku
+   heroku login
+   ```
+
+2. **Create Heroku App**
+   ```bash
+   cd backend
+   heroku create your-app-name
+   ```
+
+3. **Configure Database**
+   ```bash
+   heroku addons:create heroku-postgresql:hobby-dev
+   ```
+
+4. **Set Environment Variables**
+   ```bash
+   heroku config:set NODE_ENV=production
+   heroku config:set JWT_SECRET=your_secret
+   # Add other environment variables
+   ```
+
+5. **Deploy**
+   ```bash
+   git push heroku main
+   ```
+
+### Option 4: DigitalOcean App Platform
+
+1. **Create App**
+   - Connect your GitHub repository
+   - Set source directory to `backend`
+   - Build command: `npm install && npm run build`
+   - Run command: `npm start`
+
+2. **Configure Environment Variables**
+   - Add all required environment variables
+   - Set `NODE_ENV=production`
+
+## 🐳 Docker Deployment
+
+### Docker Compose (Full Stack)
+
+1. **Create docker-compose.yml**
+   ```yaml
+   version: '3.8'
+   services:
+     frontend:
+       build: .
+       ports:
+         - "8080:80"
+       environment:
+         - VITE_API_URL=http://localhost:3000
+       depends_on:
+         - backend
+     
+     backend:
+       build: ./backend
+       ports:
+         - "3000:3000"
+       environment:
+         - NODE_ENV=production
+         - DB_HOST=postgres
+         - DB_PORT=5432
+         - DB_USERNAME=postgres
+         - DB_PASSWORD=password
+         - DB_DATABASE=portfolio
+       depends_on:
+         - postgres
+     
+     postgres:
+       image: postgres:15
+       environment:
+         - POSTGRES_USER=postgres
+         - POSTGRES_PASSWORD=password
+         - POSTGRES_DB=portfolio
+       volumes:
+         - postgres_data:/var/lib/postgresql/data
+       ports:
+         - "5432:5432"
+   
+   volumes:
+     postgres_data:
+   ```
+
+2. **Deploy**
+   ```bash
+   docker-compose up -d
+   ```
+
+### Individual Containers
+
+1. **Frontend Dockerfile**
+   ```dockerfile
+   FROM node:18-alpine as builder
+   WORKDIR /app
+   COPY package*.json ./
+   RUN npm ci
+   COPY . .
+   RUN npm run build
+   
+   FROM nginx:alpine
+   COPY --from=builder /app/dist /usr/share/nginx/html
+   COPY nginx.conf /etc/nginx/nginx.conf
+   EXPOSE 80
+   CMD ["nginx", "-g", "daemon off;"]
+   ```
+
+2. **Backend Dockerfile**
+   ```dockerfile
+   FROM node:18-alpine
+   WORKDIR /app
+   COPY package*.json ./
+   RUN npm ci --only=production
+   COPY . .
+   RUN npm run build
+   EXPOSE 3000
+   CMD ["npm", "start"]
+   ```
+
+## 🗄️ Database Setup
+
+### PostgreSQL Setup
+
+1. **Local Development**
+   ```bash
+   # Install PostgreSQL
+   # Create database
+   createdb portfolio_db
+   
+   # Run migrations
+   cd backend
+   npm run migration:run
+   
+   # Seed data
+   npm run db:seed
+   ```
+
+2. **Production Database**
+   - Use managed PostgreSQL service (Railway, Supabase, etc.)
+   - Set up connection pooling
+   - Configure backups
+   - Set up monitoring
+
+### Environment Variables for Database
+
+```env
+DB_HOST=your-db-host
 DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_DATABASE=portfolio_db
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# Admin Credentials
-ADMIN_LOGIN_USERNAME=ashishjaiswal0701@gmail.com
-ADMIN_LOGIN_PASSWORD=@fusu649Ib
-
-# Email Configuration (for password reset)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-
-# Frontend URL (for password reset links)
-FRONTEND_URL=http://localhost:5173
-
-# CORS Configuration
-CORS_ORIGIN=http://localhost:5173
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
+DB_USERNAME=your-username
+DB_PASSWORD=your-password
+DB_DATABASE=your-database
 ```
 
-### 2. Email Setup (for password reset)
+## 🔒 Security Configuration
 
-#### Gmail Setup:
-1. Enable 2-factor authentication on your Gmail account
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate password for "Mail"
-3. Use the generated password in `EMAIL_PASS`
+### SSL/HTTPS
+- Enable SSL certificates (Let's Encrypt)
+- Configure HTTPS redirects
+- Set secure headers
 
-#### Other Email Providers:
-- Update `EMAIL_HOST` and `EMAIL_PORT` accordingly
-- Use appropriate credentials
-
-### 3. Database Setup
-
-#### PostgreSQL:
-```sql
--- Create database
-CREATE DATABASE portfolio_db;
-
--- The tables will be created automatically by TypeORM
-```
-
-### 4. Install Dependencies
-
-```bash
-cd backend
-npm install
-```
-
-### 5. Start Backend Server
-
-```bash
-# Development
-npm run dev
-
-# Production
-npm run build
-npm start
-```
-
-## 🎨 Frontend Setup
-
-### 1. Environment Configuration
-
-Create a `.env` file in the root directory:
-
-```bash
-VITE_API_URL=http://localhost:3000
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Start Frontend Server
-
-```bash
-npm run dev
-```
-
-## 🔐 Authentication Flow
-
-### 1. Admin Login
-```
-POST /api/auth/login
-Body: { email: "ashishjaiswal0701@gmail.com", password: "@fusu649Ib" }
-Response: Sets HttpOnly cookies (accessToken, refreshToken)
-```
-
-### 2. Password Reset Flow
-```
-1. User clicks "Forgot Password" on login page
-2. POST /api/auth/forgot-password with email
-3. System generates reset token and sends email
-4. User clicks link in email → /admin/reset-password?token=xxx
-5. POST /api/auth/reset-password with token and new password
-```
-
-### 3. Protected Routes
-```
-All admin routes (/admin/*) are protected by:
-- authenticateToken middleware (checks JWT in cookies)
-- requireAdmin middleware (verifies admin role)
-```
-
-## 🚀 Production Deployment
-
-### 1. Environment Variables (Production)
-
-```bash
-# Update these for production
+### Environment Variables
+```env
 NODE_ENV=production
-JWT_SECRET=very-long-random-secret-key
-FRONTEND_URL=https://yourdomain.com
-CORS_ORIGIN=https://yourdomain.com
-EMAIL_HOST=smtp.yourprovider.com
-EMAIL_USER=admin@yourdomain.com
-EMAIL_PASS=your-email-password
+JWT_SECRET=your-super-secure-secret
+JWT_REFRESH_SECRET=your-super-secure-refresh-secret
+CORS_ORIGIN=https://your-frontend-domain.com
 ```
 
-### 2. Database (Production)
-
-```bash
-# Use a production PostgreSQL instance
-# Consider using managed services like:
-# - AWS RDS
-# - Google Cloud SQL
-# - DigitalOcean Managed Databases
-# - Railway
-# - Supabase
+### Rate Limiting
+```env
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
 ```
 
-### 3. Email Service (Production)
+## 📊 Monitoring & Logging
 
-```bash
-# Recommended email services:
-# - SendGrid
-# - Mailgun
-# - AWS SES
-# - Resend
-# - Postmark
+### Application Monitoring
+- Set up error tracking (Sentry)
+- Configure performance monitoring
+- Set up uptime monitoring
+
+### Database Monitoring
+- Set up query performance monitoring
+- Configure slow query alerts
+- Monitor connection pool usage
+
+### Logging
+```env
+LOG_LEVEL=info
+LOG_FILE=logs/app.log
 ```
 
-### 4. Deployment Platforms
+## 🔄 CI/CD Pipeline
 
-#### Backend Deployment:
-- **Railway**: Easy deployment with PostgreSQL
-- **Render**: Free tier available
-- **Heroku**: Classic choice
-- **DigitalOcean App Platform**
-- **AWS Elastic Beanstalk**
+### GitHub Actions Example
 
-#### Frontend Deployment:
-- **Vercel**: Optimized for React
-- **Netlify**: Great for static sites
-- **GitHub Pages**: Free hosting
-- **AWS S3 + CloudFront**
+```yaml
+name: Deploy
+on:
+  push:
+    branches: [ main ]
 
-### 5. Security Checklist
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
 
-- [ ] Change default JWT secret
-- [ ] Use HTTPS in production
-- [ ] Set secure cookie options
-- [ ] Configure proper CORS origins
-- [ ] Use environment variables for secrets
-- [ ] Enable rate limiting
-- [ ] Set up monitoring/logging
-- [ ] Regular security updates
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run build
+      - uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
 
-## 🧪 Testing the System
-
-### 1. Test Admin Login
-```bash
-# Test login endpoint
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"ashishjaiswal0701@gmail.com","password":"@fusu649Ib"}'
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: |
+          cd backend
+          npm ci
+          npm run build
+      - uses: railway/action@v1
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
 ```
 
-### 2. Test Password Reset
-```bash
-# Test forgot password
-curl -X POST http://localhost:3000/api/auth/forgot-password \
-  -H "Content-Type: application/json" \
-  -d '{"email":"ashishjaiswal0701@gmail.com"}'
-```
+## 🚨 Troubleshooting
 
-### 3. Test Protected Routes
-```bash
-# Should return 401 without authentication
-curl http://localhost:3000/api/admin/contacts
-```
+### Common Issues
 
-## 🔧 Troubleshooting
-
-### Common Issues:
-
-1. **TypeScript Compilation Errors**
-   - Ensure `experimentalDecorators` and `emitDecoratorMetadata` are enabled in `tsconfig.json`
-   - Check that all dependencies are installed
+1. **Build Failures**
+   - Check Node.js version compatibility
+   - Verify all dependencies are installed
+   - Check for TypeScript errors
 
 2. **Database Connection Issues**
-   - Verify PostgreSQL is running
-   - Check database credentials in `.env`
-   - Ensure database exists
+   - Verify database credentials
+   - Check network connectivity
+   - Ensure database is running
 
-3. **Email Not Sending**
-   - Verify email credentials
-   - Check if 2FA is enabled for Gmail
-   - Use App Password instead of regular password
+3. **Environment Variables**
+   - Verify all required variables are set
+   - Check variable names and values
+   - Restart application after changes
 
-4. **CORS Errors**
-   - Check `CORS_ORIGIN` in backend `.env`
-   - Ensure frontend URL matches
+4. **CORS Issues**
+   - Verify CORS_ORIGIN is set correctly
+   - Check frontend URL matches backend configuration
 
-5. **JWT Token Issues**
-   - Verify `JWT_SECRET` is set
-   - Check cookie settings
-   - Ensure `withCredentials: true` in frontend API calls
+### Performance Optimization
+
+1. **Frontend**
+   - Enable code splitting
+   - Optimize images
+   - Use CDN for static assets
+
+2. **Backend**
+   - Enable compression
+   - Use connection pooling
+   - Implement caching
+
+3. **Database**
+   - Add indexes for frequently queried columns
+   - Optimize queries
+   - Use read replicas if needed
 
 ## 📞 Support
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Verify all environment variables are set correctly
-3. Ensure all dependencies are installed
-4. Check server logs for detailed error messages
-
-## 🎯 Next Steps
-
-After successful deployment:
-1. Set up monitoring and logging
-2. Configure backup strategies
-3. Set up CI/CD pipelines
-4. Implement additional security measures
-5. Add user activity tracking
-6. Set up automated testing
+For deployment issues:
+- Check the troubleshooting section
+- Review logs for error messages
+- Contact support with specific error details
 
 ---
 
-**Note**: This system is production-ready but should be customized based on your specific security requirements and deployment environment. 
+**Happy Deploying! 🚀** 
