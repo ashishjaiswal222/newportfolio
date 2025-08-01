@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Communication Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Frontend-Backend Communication Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        async function testCommunication() {
+            const baseURL = 'http://localhost:3000';
+            
+            try {
+                // Test 1: Blog fetching
+                console.log('Testing blog fetching...');
+                const blogsResponse = await axios.get(`${baseURL}/api/blogs`);
+                resultsDiv.innerHTML += '<p>✅ Blog fetching successful</p>';
+                
+                if (blogsResponse.data.blogs?.length > 0) {
+                    const firstBlogId = blogsResponse.data.blogs[0].id;
+                    resultsDiv.innerHTML += `<p>First blog ID: ${firstBlogId}</p>`;
+                    
+                    // Test 2: Specific blog fetch
+                    const blogResponse = await axios.get(`${baseURL}/api/blogs/${firstBlogId}`);
+                    resultsDiv.innerHTML += '<p>✅ Specific blog fetch successful</p>';
+                }
+                
+                // Test 3: User registration
+                console.log('Testing user registration...');
+                const registerResponse = await axios.post(`${baseURL}/api/user/register`, {
+                    email: 'frontendtest@example.com',
+                    password: 'frontendtest123',
+                    name: 'Frontend Test User'
+                });
+                resultsDiv.innerHTML += '<p>✅ User registration successful</p>';
+                
+                // Test 4: User login
+                console.log('Testing user login...');
+                const loginResponse = await axios.post(`${baseURL}/api/user/login`, {
+                    email: 'frontendtest@example.com',
+                    password: 'frontendtest123'
+                });
+                resultsDiv.innerHTML += '<p>✅ User login successful</p>';
+                
+                // Test 5: Admin login
+                console.log('Testing admin login...');
+                const adminLoginResponse = await axios.post(`${baseURL}/api/admin/login`, {
+                    email: 'ashishjaiswal0701@gmail.com',
+                    password: '@fusu649Ib'
+                });
+                resultsDiv.innerHTML += '<p>✅ Admin login successful</p>';
+                
+                resultsDiv.innerHTML += '<h2>🎉 All tests passed! Frontend can communicate with backend.</h2>';
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                resultsDiv.innerHTML += `<p>❌ Test failed: ${error.message}</p>`;
+                if (error.response) {
+                    resultsDiv.innerHTML += `<p>Status: ${error.response.status}</p>`;
+                    resultsDiv.innerHTML += `<p>Data: ${JSON.stringify(error.response.data)}</p>`;
+                }
+            }
+        }
+        
+        testCommunication();
+    </script>
+</body>
+</html> 

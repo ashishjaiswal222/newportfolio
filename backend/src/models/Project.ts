@@ -45,10 +45,10 @@ export class Project {
   @Column({ nullable: true })
   featuredImage?: string;
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   images: string[] = [];
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   technologies: string[] = [];
 
   @Column({ nullable: true })
@@ -92,13 +92,13 @@ export class Project {
   @Column({ default: 0 })
   stars!: number;
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   challenges: string[] = [];
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   learnings: string[] = [];
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   tags: string[] = [];
 
   // Rating system fields

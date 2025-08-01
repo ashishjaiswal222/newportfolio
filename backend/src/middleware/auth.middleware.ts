@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Extend Express Request type to include user
-// This fixes TS2339 errors in controllers
+// Extend Express Request type to include user with role
 declare global {
   namespace Express {
     interface Request {
@@ -10,13 +9,13 @@ declare global {
         id: string;
         email: string;
         name: string;
+        role: 'user' | 'admin';
       };
     }
   }
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  // Get token from Authorization header only (since we removed cookieParser)
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -30,7 +29,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      name: decoded.name
+      name: decoded.name,
+      role: decoded.role || 'user'
     };
     next();
   } catch (error) {
@@ -38,19 +38,38 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  // For now, any authenticated user is considered admin
-  // You can add role-based checks here if needed
-  next();
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  authenticateToken(req, res, next);
 };
 
-// Combined middleware for admin routes
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   authenticateToken(req, res, (err) => {
     if (err) return next(err);
-    requireAdmin(req, res, next);
+    
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    next();
+  });
+};
+
+export const requireUser = (req: Request, res: Response, next: NextFunction) => {
+  authenticateToken(req, res, (err) => {
+    if (err) return next(err);
+    
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (req.user.role !== 'user') {
+      return res.status(403).json({ message: 'User access required' });
+    }
+    
+    next();
   });
 }; 

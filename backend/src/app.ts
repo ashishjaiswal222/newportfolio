@@ -1,52 +1,93 @@
-import 'reflect-metadata';
 import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { AppDataSource } from './config/ormconfig';
+import userRoutes from './routes/user.routes';
+import adminRoutes from './routes/admin.routes';
+import blogRoutes from './routes/blog.routes';
+import projectRoutes from './routes/project.routes';
 import contactRoutes from './routes/contact.routes';
 import testimonialRoutes from './routes/testimonial.routes';
-import projectRoutes from './routes/project.routes';
-import blogRoutes from './routes/blog.routes';
-import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
-import { requireAuth } from './middleware/auth.middleware';
-import cors from 'cors';
+import sitemapRoutes from './routes/sitemap.routes';
+import commentRoutes from './routes/comment.routes';
 
 const app = express();
-app.use(express.json());
+
+// Initialize database connection
+AppDataSource.initialize()
+  .then(() => {
+    console.log('✅ Database connected successfully');
+  })
+  .catch((error) => {
+    console.error('❌ Database connection failed:', error);
+  });
+
+// Middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// CORS configuration with proper cookie handling
 app.use(cors({
   origin: [
-    'http://localhost:5173',
     'http://localhost:8080',
     'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:8083',
-    'http://localhost:8084',
     'http://localhost:3000',
-    process.env.CORS_ORIGIN || 'http://localhost:5173'
-  ].filter(Boolean) as string[],
-  credentials: true
+    'http://localhost:4173',
+    'http://localhost:5173',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:4173',
+    'http://127.0.0.1:5173'
+  ],
+  credentials: true, // Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    database: AppDataSource.isInitialized ? 'Connected' : 'Disconnected'
+  });
 });
 
-// Public routes (no authentication required)
+// API routes
+app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/projects', projectRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/blogs', blogRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/sitemap', sitemapRoutes);
+app.use('/api/blogs', commentRoutes); // Mount comment routes under /api/blogs
 
-// Auth routes
-app.use('/api/auth', authRoutes);
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
-// Protected admin routes (require authentication)
-app.use('/api/admin/contacts', requireAuth, contactRoutes);
-app.use('/api/admin/testimonials', requireAuth, testimonialRoutes);
-app.use('/api/admin/projects', requireAuth, projectRoutes);
-app.use('/api/admin/blogs', requireAuth, blogRoutes);
-app.use('/api/admin/analytics', requireAuth, analyticsRoutes);
-
-// Database initialization is now handled in server.ts
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 export default app;

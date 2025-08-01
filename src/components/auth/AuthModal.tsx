@@ -1,54 +1,55 @@
-// Add to imports in BlogList.tsx:
-import { FaThumbtack } from 'react-icons/fa';
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FaEye, FaEyeSlash, FaGoogle, FaGithub, FaSpinner } from 'react-icons/fa';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'login' | 'register';
+  mode?: 'login' | 'register' | 'forgot-password';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login' }) => {
-  const { login, register } = useAuth();
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>(defaultTab);
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode = 'login' }) => {
+  const [activeTab, setActiveTab] = useState(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [otp, setOtp] = useState('');
-
-  // Form states
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: ''
-  });
-
-  const [registerForm, setRegisterForm] = useState({
-    name: '',
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
+    name: '',
     confirmPassword: ''
   });
+
+  const { login, register, forgotPassword } = useAuth();
+  const { toast } = useToast();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
     try {
-      await login(loginForm.email, loginForm.password);
+      await login({
+        email: formData.email,
+        password: formData.password
+      });
       onClose();
-      // Reset form
-      setLoginForm({ email: '', password: '' });
+      setFormData({ email: '', password: '', name: '', confirmPassword: '' });
     } catch (error) {
-      // Error handled by AuthContext
+      // Error is handled by the auth context
     } finally {
       setIsLoading(false);
     }
@@ -56,169 +57,167 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (registerForm.password !== registerForm.confirmPassword) {
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
       return;
     }
-    
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
+    
     try {
-      await register(registerForm.name, registerForm.email, registerForm.password);
-      setShowOTP(true);
+      await register({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name
+      });
+      setActiveTab('login');
+      setFormData({ email: '', password: '', name: '', confirmPassword: '' });
     } catch (error) {
-      // Error handled by AuthContext
+      // Error is handled by the auth context
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOTPVerification = async (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
     try {
-      // OTP verification logic would go here
-      // For now, just close the modal
-      onClose();
-      setShowOTP(false);
-      setRegisterForm({ name: '', email: '', password: '', confirmPassword: '' });
-      setOtp('');
+      await forgotPassword(formData.email);
+      setActiveTab('login');
+      setFormData({ email: '', password: '', name: '', confirmPassword: '' });
     } catch (error) {
-      // Handle OTP verification error
+      // Error is handled by the auth context
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (showOTP) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-orbitron text-gradient-cyber">Verify Your Email</DialogTitle>
-          </DialogHeader>
-          <Card className="cyber-border">
-            <CardHeader>
-              <CardDescription>
-                We've sent a verification code to {registerForm.email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleOTPVerification} className="space-y-4">
-                <div>
-                  <Label htmlFor="otp">Verification Code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="cyber-input"
-                    maxLength={6}
-                    required
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    type="submit"
-                    disabled={isLoading || otp.length !== 6}
-                    className="flex-1 cyber-button bg-gradient-cyber"
-                  >
-                    {isLoading ? <FaSpinner className="animate-spin mr-2" /> : null}
-                    Verify Account
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowOTP(false)}
-                    className="cyber-button"
-                  >
-                    Back
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const handleSocialLogin = (provider: 'google' | 'github') => {
+    toast({
+      title: "Coming soon",
+      description: `${provider} login will be available soon!`,
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-orbitron text-gradient-cyber">Welcome to Tech Blog</DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold">
+            Welcome to Ashish Jaiswal Portfolio
+          </DialogTitle>
         </DialogHeader>
-        
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
-          <TabsList className="grid w-full grid-cols-2">
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="forgot-password">Reset</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="login">
-            <Card className="cyber-border">
+          <TabsContent value="login" className="space-y-4">
+            <Card>
               <CardHeader>
-                <CardTitle>Login to Your Account</CardTitle>
+                <CardTitle className="text-xl">Sign In</CardTitle>
                 <CardDescription>
-                  Access all blog features and join the conversation
+                  Enter your credentials to access your account
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={loginForm.email}
-                      onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="cyber-input"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="login-password">Password</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
                     <div className="relative">
+                      <FaEnvelope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="login-password"
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <FaLock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="Enter your password"
-                        value={loginForm.password}
-                        onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                        className="cyber-input pr-10"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-10"
                         required
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full cyber-button bg-gradient-cyber"
-                  >
-                    {isLoading ? <FaSpinner className="animate-spin mr-2" /> : null}
-                    Login
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
 
-                <Separator className="my-4" />
-                
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    onClick={() => setActiveTab('forgot-password')}
+                    className="text-sm"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full cyber-button">
-                    <FaGoogle className="mr-2" />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={isLoading}
+                  >
+                    <FaGoogle className="mr-2 h-4 w-4" />
                     Continue with Google
                   </Button>
-                  <Button variant="outline" className="w-full cyber-button">
-                    <FaGithub className="mr-2" />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('github')}
+                    disabled={isLoading}
+                  >
+                    <FaGithub className="mr-2 h-4 w-4" />
                     Continue with GitHub
                   </Button>
                 </div>
@@ -226,99 +225,144 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
             </Card>
           </TabsContent>
 
-          <TabsContent value="register">
-            <Card className="cyber-border">
+          <TabsContent value="register" className="space-y-4">
+            <Card>
               <CardHeader>
-                <CardTitle>Create Account</CardTitle>
+                <CardTitle className="text-xl">Create Account</CardTitle>
                 <CardDescription>
-                  Join our community and start sharing your thoughts
+                  Join our community and start your journey
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div>
-                    <Label htmlFor="register-name">Full Name</Label>
-                    <Input
-                      id="register-name"
-                      type="text"
-                      placeholder="Your full name"
-                      value={registerForm.name}
-                      onChange={(e) => setRegisterForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="cyber-input"
-                      required
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <FaUser className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="register-email">Email</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={registerForm.email}
-                      onChange={(e) => setRegisterForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="cyber-input"
-                      required
-                    />
+                    <div className="relative">
+                      <FaEnvelope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
                     <div className="relative">
+                      <FaLock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="register-password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Create a strong password"
-                        value={registerForm.password}
-                        onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
-                        className="cyber-input pr-10"
+                        placeholder="Create a password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-10"
                         required
-                        minLength={6}
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={registerForm.confirmPassword}
-                      onChange={(e) => setRegisterForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      className="cyber-input"
-                      required
-                    />
-                    {registerForm.password !== registerForm.confirmPassword && registerForm.confirmPassword && (
-                      <p className="text-sm text-destructive mt-1">Passwords don't match</p>
-                    )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <FaLock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={isLoading || registerForm.password !== registerForm.confirmPassword}
-                    className="w-full cyber-button bg-gradient-cyber"
-                  >
-                    {isLoading ? <FaSpinner className="animate-spin mr-2" /> : null}
-                    Create Account
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
 
-                <Separator className="my-4" />
-                
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full cyber-button">
-                    <FaGoogle className="mr-2" />
-                    Continue with Google
+                <div className="text-center text-sm text-muted-foreground">
+                  By creating an account, you agree to our Terms of Service and Privacy Policy.
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="forgot-password" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Reset Password</CardTitle>
+                <CardDescription>
+                  Enter your email to receive a password reset link
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <div className="relative">
+                      <FaEnvelope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Sending...' : 'Send Reset Link'}
                   </Button>
-                  <Button variant="outline" className="w-full cyber-button">
-                    <FaGithub className="mr-2" />
-                    Continue with GitHub
+                </form>
+
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    onClick={() => setActiveTab('login')}
+                    className="text-sm"
+                  >
+                    Back to login
                   </Button>
                 </div>
               </CardContent>

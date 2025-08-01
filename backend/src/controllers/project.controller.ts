@@ -31,7 +31,7 @@ export const testProjects = async (req: Request, res: Response) => {
     console.error('❌ Test failed:', error);
     res.status(500).json({ 
       message: 'Test failed', 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
@@ -101,7 +101,7 @@ export const getProjects = async (req: Request, res: Response) => {
     console.error('❌ Error fetching projects:', error);
     res.status(500).json({ 
       message: 'Error fetching projects',
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
@@ -148,16 +148,53 @@ export const getProject = async (req: Request, res: Response) => {
 export const createProject = async (req: Request, res: Response) => {
   try {
     const projectData = req.body;
-    const project = projectRepository.create(projectData);
+    console.log('📝 Creating project with data:', JSON.stringify(projectData, null, 2));
+    
+    // Ensure array fields are properly formatted for PostgreSQL
+    const sanitizedData = {
+      ...projectData,
+      technologies: Array.isArray(projectData.technologies) ? projectData.technologies : [],
+      images: Array.isArray(projectData.images) ? projectData.images : [],
+      challenges: Array.isArray(projectData.challenges) ? projectData.challenges : [],
+      learnings: Array.isArray(projectData.learnings) ? projectData.learnings : [],
+      tags: Array.isArray(projectData.tags) ? projectData.tags : [],
+      ratings: Array.isArray(projectData.ratings) ? projectData.ratings : [],
+      averageRating: projectData.averageRating || 0,
+      totalRatings: projectData.totalRatings || 0,
+      views: projectData.views || 0,
+      stars: projectData.stars || 0,
+      featured: projectData.featured || false,
+      order: projectData.order || 0
+    };
+    
+    console.log('📝 Sanitized project data:', JSON.stringify(sanitizedData, null, 2));
+    
+    const project = projectRepository.create(sanitizedData);
+    console.log('📝 Project entity created:', project);
+    
     const savedProject = await projectRepository.save(project);
+    console.log('✅ Project saved successfully');
     
     res.status(201).json({ 
       message: 'Project created successfully', 
       project: savedProject 
     });
   } catch (error) {
-    console.error('Error creating project:', error);
-    res.status(500).json({ message: 'Error creating project' });
+    console.error('❌ Error creating project - Full error:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    if (error.code) console.error('❌ Error code:', error.code);
+    if (error.detail) console.error('❌ Error detail:', error.detail);
+    if (error.table) console.error('❌ Error table:', error.table);
+    if (error.column) console.error('❌ Error column:', error.column);
+    if (error.constraint) console.error('❌ Error constraint:', error.constraint);
+    
+    res.status(500).json({ 
+      message: 'Error creating project',
+      error: error.message,
+      details: error.detail || error.code || 'Unknown error'
+    });
   }
 };
 

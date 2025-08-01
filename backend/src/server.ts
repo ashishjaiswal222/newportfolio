@@ -1,73 +1,64 @@
 import 'reflect-metadata';
-import express from 'express';
-import cors from 'cors';
 import { AppDataSource } from './config/ormconfig';
-import projectRoutes from './routes/project.routes';
-import testimonialRoutes from './routes/testimonial.routes';
-import contactRoutes from './routes/contact.routes';
-import authRoutes from './routes/auth.routes';
-import blogRoutes from './routes/blog.routes';
-import analyticsRoutes from './routes/analytics.routes';
+import app from './app';
 
-const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082'],
-  credentials: true
-}));
-app.use(express.json());
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    database: AppDataSource.isInitialized ? 'Connected' : 'Disconnected'
-  });
-});
-
-// API routes
-app.use('/api/projects', projectRoutes);
-app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/contacts', contactRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/blogs', blogRoutes);
-app.use('/api/analytics', analyticsRoutes);
-
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server error:', err);
-  res.status(500).json({ 
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Endpoint not found' });
-});
 
 async function startServer() {
   try {
     console.log('🔄 Initializing database connection...');
+    console.log('📊 Database config:', {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || '5432',
+      database: process.env.DB_NAME || 'ashish_portfolio',
+      user: process.env.DB_USER || 'postgres'
+    });
     
-    // Initialize database connection
-    await AppDataSource.initialize();
-    console.log('✅ Database connection established');
+    // Try to initialize database connection with proper error handling
+    let dbConnected = false;
+    try {
+      await AppDataSource.initialize();
+      console.log('✅ Database connection established');
+      console.log('📋 Registered entities:', AppDataSource.entityMetadatas.map(e => e.name));
+      dbConnected = true;
+    } catch (dbError) {
+      console.error('❌ Database connection failed:', dbError.message);
+      console.error('🔍 Error details:', {
+        name: dbError.name,
+        code: dbError.code,
+        detail: dbError.detail
+      });
+      console.log('🚀 Starting server without database connection...');
+      console.log('📝 Database-dependent features will be disabled');
+      dbConnected = false;
+    }
     
-    // Start the server
-    app.listen(PORT, () => {
+    // Start the server regardless of database status
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log('📋 Available endpoints:');
-      console.log('   GET  /health');
+      console.log('   GET  /api/health');
       console.log('   GET  /api/projects');
       console.log('   GET  /api/testimonials');
       console.log('   POST /api/contacts');
-      console.log('   POST /api/auth/login');
-      console.log('   GET  /api/analytics');
+      console.log('   POST /api/user/login');
+      console.log('   POST /api/admin/login');
+      console.log('   GET  /api/admin/analytics');
+      console.log('   GET  /sitemap.xml');
+      
+      if (!dbConnected) {
+        console.log('⚠️  Database-dependent features will not work');
+        console.log('💡 To enable full functionality:');
+        console.log('   1. Install PostgreSQL');
+        console.log('   2. Create database: portfolio_db');
+        console.log('   3. Set environment variables in .env file');
+      }
+    });
+    
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      process.exit(1);
     });
     
   } catch (error) {
@@ -80,8 +71,12 @@ async function startServer() {
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down server...');
   if (AppDataSource.isInitialized) {
-    await AppDataSource.destroy();
-    console.log('✅ Database connection closed');
+    try {
+      await AppDataSource.destroy();
+      console.log('✅ Database connection closed');
+    } catch (error) {
+      console.log('⚠️ Error closing database connection:', error.message);
+    }
   }
   process.exit(0);
 });
@@ -89,10 +84,25 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down server...');
   if (AppDataSource.isInitialized) {
-    await AppDataSource.destroy();
-    console.log('✅ Database connection closed');
+    try {
+      await AppDataSource.destroy();
+      console.log('✅ Database connection closed');
+    } catch (error) {
+      console.log('⚠️ Error closing database connection:', error.message);
+    }
   }
   process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 startServer();

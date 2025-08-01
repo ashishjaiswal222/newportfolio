@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Star, User, Calendar, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ProjectRating as ProjectRatingType } from '@/services/project.api';
+import { ProjectRating as ProjectRatingType, projectAPI } from '@/services/project.api';
 
 interface ProjectRatingProps {
   projectId: string;
@@ -15,6 +15,7 @@ interface ProjectRatingProps {
   totalRatings: number;
   ratings: ProjectRatingType[];
   onRatingAdded: (newRating: number) => void;
+  requireAuth?: boolean; // Optional: require authentication for rating
 }
 
 const ProjectRating: React.FC<ProjectRatingProps> = ({
@@ -22,14 +23,15 @@ const ProjectRating: React.FC<ProjectRatingProps> = ({
   averageRating,
   totalRatings,
   ratings,
-  onRatingAdded
+  onRatingAdded,
+  requireAuth = false
 }) => {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userRating, setUserRating] = useState<ProjectRatingType | null>(null);
   const [userIP, setUserIP] = useState<string>('');
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   // Get user IP address for anonymous rating tracking
@@ -69,6 +71,16 @@ const ProjectRating: React.FC<ProjectRatingProps> = ({
   const handleSubmitRating = async () => {
     if (!selectedRating || !userIP) return;
 
+    // Check authentication requirement
+    if (requireAuth && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to rate this project",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const ratingData = {
@@ -78,20 +90,7 @@ const ProjectRating: React.FC<ProjectRatingProps> = ({
         userIP: userIP
       };
 
-      const response = await fetch(`/api/projects/${projectId}/ratings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ratingData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit rating');
-      }
-
-      const data = await response.json();
+      const data = await projectAPI.addRating(projectId, ratingData);
       onRatingAdded(selectedRating);
       
       toast({
@@ -172,106 +171,76 @@ const ProjectRating: React.FC<ProjectRatingProps> = ({
 
         <Separator />
 
-        {/* User Rating Section */}
-        <div className="space-y-4">
-          <h3 className="font-orbitron text-lg font-bold text-primary">
-            {userRating ? 'Your Rating' : 'Rate this Project'}
-          </h3>
-          
-          <div className="flex items-center justify-center gap-1">
-            {renderStars(selectedRating, !userRating, 'w-8 h-8')}
-          </div>
-          
-          {selectedRating > 0 && (
-            <p className="text-center text-foreground/80">
-              {userRating ? 'You rated this project' : 'You selected'} {selectedRating} star{selectedRating !== 1 ? 's' : ''}
-            </p>
-          )}
-
-          {!userRating && selectedRating > 0 && (
-            <div className="flex justify-center">
+        {/* Rating Form */}
+        {!userRating && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h4 className="font-semibold text-foreground mb-2">
+                {requireAuth && !isAuthenticated ? 'Login to Rate' : 'Rate this Project'}
+              </h4>
+              {requireAuth && !isAuthenticated && (
+                <p className="text-sm text-foreground/60 mb-3">
+                  Please login to rate this project
+                </p>
+              )}
+              <div className="flex justify-center gap-1">
+                {renderStars(selectedRating, !requireAuth || isAuthenticated, 'w-8 h-8')}
+              </div>
+              {selectedRating > 0 && (
+                <p className="text-sm text-foreground/70 mt-2">
+                  You selected {selectedRating} star{selectedRating !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+            
+            {(requireAuth ? isAuthenticated : true) && (
               <Button
                 onClick={handleSubmitRating}
-                disabled={isSubmitting}
-                className="cyber-button"
+                disabled={!selectedRating || isSubmitting}
+                className="w-full cyber-button bg-gradient-cyber"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Rating'}
               </Button>
-            </div>
-          )}
-
-          {userRating && (
-            <div className="text-center p-3 bg-accent/10 rounded-lg border border-accent/20">
-              <p className="text-sm text-foreground/80">
-                You rated this project on{' '}
-                {new Date(userRating.ratedAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-            </div>
-          )}
-
-          {/* Rating Guidelines */}
-          <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-foreground/70">
-                <p className="font-semibold mb-1">Rating Guidelines:</p>
-                <p>⭐ 1-2: Needs improvement</p>
-                <p>⭐⭐ 3: Average</p>
-                <p>⭐⭐⭐ 4: Good</p>
-                <p>⭐⭐⭐⭐ 5: Excellent</p>
-                <p className="mt-1 text-blue-400">One rating per IP address to prevent spam.</p>
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* User's Previous Rating */}
+        {userRating && (
+          <div className="text-center p-4 bg-background/20 rounded-lg">
+            <p className="text-sm text-foreground/70 mb-2">Your Rating</p>
+            <div className="flex justify-center gap-1 mb-2">
+              {renderStars(userRating.rating, false, 'w-6 h-6')}
+            </div>
+            <p className="text-xs text-foreground/50">
+              Rated on {new Date(userRating.ratedAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
 
         {/* Recent Ratings */}
-        {ratings && ratings.length > 0 && (
-          <>
-            <Separator />
-            <div>
-              <h3 className="font-orbitron text-lg font-bold text-primary mb-4">
-                Recent Ratings
-              </h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {ratings.slice(0, 5).map((rating, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {rating.userName}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          {renderStars(rating.rating, false, 'w-3 h-3')}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-foreground/60">
-                        {new Date(rating.ratedAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+        {ratings.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-foreground">Recent Ratings</h4>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {ratings.slice(0, 5).map((rating, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-background/10 rounded">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-foreground/50" />
+                    <span className="text-sm font-medium text-foreground">
+                      {rating.userName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStars(rating.rating, false, 'w-4 h-4')}
+                    <span className="text-xs text-foreground/50">
+                      {new Date(rating.ratedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     </Card>

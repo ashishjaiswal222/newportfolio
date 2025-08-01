@@ -1,102 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FaCalendar, FaClock, FaEye, FaArrowRight, FaCode, FaRocket, FaBrain } from 'react-icons/fa';
+import { blogAPI } from '@/services/blog.api';
 
 const BlogSection = () => {
   const [showAll, setShowAll] = useState(false);
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const blogs = [
-    {
-      id: 1,
-      title: "Building Scalable Microservices with Node.js and Docker",
-      excerpt: "Learn how to architect and deploy microservices that can handle millions of requests with minimal latency.",
-      content: "Coming soon - Deep dive into microservices architecture...",
-      author: "Ashish Jaiswal",
-      date: "2024-12-15",
-      readTime: "8 min read",
-      views: 1247,
-      tags: ["Node.js", "Docker", "Microservices", "Architecture"],
-      featured: true,
-      image: "/api/placeholder/400/250",
-      category: "Backend Development"
-    },
-    {
-      id: 2,
-      title: "AI-Powered Code Generation: The Future of Software Development",
-      excerpt: "Exploring how AI tools like GitHub Copilot and ChatGPT are revolutionizing the way we write code.",
-      content: "Coming soon - AI in software development...",
-      author: "Ashish Jaiswal",
-      date: "2024-12-10",
-      readTime: "6 min read",
-      views: 892,
-      tags: ["AI", "Machine Learning", "Development Tools", "Future Tech"],
-      featured: true,
-      image: "/api/placeholder/400/250",
-      category: "Artificial Intelligence"
-    },
-    {
-      id: 3,
-      title: "React Performance Optimization: From 0 to Production",
-      excerpt: "Best practices and advanced techniques to make your React applications lightning fast.",
-      content: "Coming soon - React optimization techniques...",
-      author: "Ashish Jaiswal",
-      date: "2024-12-05",
-      readTime: "10 min read",
-      views: 2156,
-      tags: ["React", "Performance", "Optimization", "Frontend"],
-      featured: true,
-      image: "/api/placeholder/400/250",
-      category: "Frontend Development"
-    },
-    {
-      id: 4,
-      title: "Database Design Patterns for Modern Applications",
-      excerpt: "Understanding when to use SQL vs NoSQL and optimizing database performance.",
-      content: "Coming soon - Database design patterns...",
-      author: "Ashish Jaiswal",
-      date: "2024-11-28",
-      readTime: "12 min read",
-      views: 743,
-      tags: ["Database", "PostgreSQL", "MongoDB", "Design Patterns"],
-      featured: false,
-      image: "/api/placeholder/400/250",
-      category: "Database"
-    },
-    {
-      id: 5,
-      title: "DevOps Best Practices: CI/CD with GitHub Actions",
-      excerpt: "Setting up automated deployments and testing pipelines for maximum efficiency.",
-      content: "Coming soon - DevOps and CI/CD...",
-      author: "Ashish Jaiswal",
-      date: "2024-11-20",
-      readTime: "7 min read",
-      views: 567,
-      tags: ["DevOps", "CI/CD", "GitHub Actions", "Automation"],
-      featured: false,
-      image: "/api/placeholder/400/250",
-      category: "DevOps"
-    },
-    {
-      id: 6,
-      title: "The Art of Clean Code: Writing Maintainable Software",
-      excerpt: "Principles and practices that every developer should follow for better code quality.",
-      content: "Coming soon - Clean code principles...",
-      author: "Ashish Jaiswal",
-      date: "2024-11-15",
-      readTime: "9 min read",
-      views: 1089,
-      tags: ["Clean Code", "Best Practices", "Software Engineering"],
-      featured: false,
-      image: "/api/placeholder/400/250",
-      category: "Software Engineering"
-    }
-  ];
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const response = await blogAPI.getBlogs({ limit: 6 });
+        setBlogs(response.blogs || []);
+      } catch (error) {
+        console.error('Failed to fetch blogs:', error);
+        // Fallback to empty array if API fails
+        setBlogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const featuredBlogs = blogs.filter(blog => blog.featured).slice(0, 3);
+    fetchBlogs();
+  }, []);
+
+  const featuredBlogs = blogs.filter(blog => blog.isPinned).slice(0, 3);
   const displayedBlogs = showAll ? blogs : featuredBlogs;
+
+  if (loading) {
+    return (
+      <section id="blog" className="py-20 px-6 relative cyber-grid">
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-foreground/70">Loading blogs...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -143,7 +89,7 @@ const BlogSection = () => {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"
           >
             {displayedBlogs.map((blog, index) => {
-              const CategoryIcon = getCategoryIcon(blog.category);
+              const CategoryIcon = getCategoryIcon(blog.categories?.[0] || '');
               return (
                 <motion.div
                   key={blog.id}
@@ -162,13 +108,13 @@ const BlogSection = () => {
                       </div>
                       <div className="absolute top-4 left-4">
                         <Badge variant="secondary" className="cyber-button">
-                          {blog.category}
+                          {blog.categories?.[0] || 'General'}
                         </Badge>
                       </div>
-                      {blog.featured && (
+                      {blog.isPinned && (
                         <div className="absolute top-4 right-4">
                           <Badge className="bg-accent text-accent-foreground">
-                            Featured
+                            Pinned
                           </Badge>
                         </div>
                       )}
@@ -179,15 +125,15 @@ const BlogSection = () => {
                       <div className="flex items-center text-sm text-foreground/60 mb-3 space-x-4">
                         <div className="flex items-center space-x-1">
                           <FaCalendar className="text-xs" />
-                          <span>{new Date(blog.date).toLocaleDateString()}</span>
+                          <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <FaClock className="text-xs" />
-                          <span>{blog.readTime}</span>
+                          <span>{Math.ceil(blog.content.length / 1000)} min read</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <FaEye className="text-xs" />
-                          <span>{blog.views}</span>
+                          <span>{blog.views || 0}</span>
                         </div>
                       </div>
 

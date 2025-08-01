@@ -5,7 +5,7 @@ import {
   updateTestimonialStatus,
   deleteTestimonial
 } from '../controllers/testimonial.controller';
-import { validateTestimonial } from '../middlewares/validateTestimonial';
+import { validateTestimonial } from '../middleware/validation.middleware';
 
 const router = Router();
 

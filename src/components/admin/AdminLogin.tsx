@@ -23,13 +23,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { adminLogin } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(username, password);
+      await adminLogin({ email: username, password });
       onLogin();
     } catch (error) {
       // Error handled by AuthContext toast

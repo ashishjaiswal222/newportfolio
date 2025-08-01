@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,18 +10,70 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { FaUser, FaHeart, FaBookmark, FaComment, FaEye, FaEdit, FaCalendar } from 'react-icons/fa';
+import { authAPI } from '@/services/auth.api';
+import { blogAPI } from '@/services/blog.api'; // Assume this exists for fetching blogs by ID
 
 const UserProfile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    bio: '',
-    location: '',
-    website: '',
+    bio: user?.bio || '',
+    location: user?.location || '',
+    website: user?.website || '',
   });
+  const [stats, setStats] = useState([
+    { label: 'Posts Read', value: 0, icon: FaEye },
+    { label: 'Likes Given', value: 0, icon: FaHeart },
+    { label: 'Comments', value: 0, icon: FaComment },
+    { label: 'Bookmarks', value: 0, icon: FaBookmark },
+  ]);
+  const [bookmarkedBlogs, setBookmarkedBlogs] = useState<any[]>([]);
+  const [userComments, setUserComments] = useState<any[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    // Fetch user stats, bookmarks, comments, and activity
+    const fetchUserData = async () => {
+      try {
+        // Refresh user to get latest info
+        await refreshUser();
+        // Get bookmarks (blog IDs)
+        const bookmarks = user.bookmarkedBlogs || [];
+        // Fetch blog details for bookmarks
+        const blogs = await Promise.all(
+          bookmarks.map(async (id: string) => {
+            try {
+              const res = await blogAPI.getBlog(id);
+              return res;
+            } catch {
+              return null;
+            }
+          })
+        );
+        setBookmarkedBlogs(blogs.filter(Boolean));
+        // Fetch user comments
+        const commentsRes = await authAPI.getUserComments();
+        setUserComments(commentsRes.comments || []);
+        // Fetch user activity (likes, comments, bookmarks, etc.)
+        const activityRes = await authAPI.getUserActivity();
+        setActivity(activityRes.activity || []);
+        // Set stats
+        setStats([
+          { label: 'Posts Read', value: user.postsRead?.length || 0, icon: FaEye },
+          { label: 'Likes Given', value: user.likedBlogs?.length || 0, icon: FaHeart },
+          { label: 'Comments', value: commentsRes.comments?.length || 0, icon: FaComment },
+          { label: 'Bookmarks', value: bookmarks.length, icon: FaBookmark },
+        ]);
+      } catch (err) {
+        // handle error
+      }
+    };
+    fetchUserData();
+  }, [user]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +92,6 @@ const UserProfile = () => {
   if (!user) {
     return null;
   }
-
-  const stats = [
-    { label: 'Posts Read', value: 24, icon: FaEye },
-    { label: 'Likes Given', value: 156, icon: FaHeart },
-    { label: 'Comments', value: 42, icon: FaComment },
-    { label: 'Bookmarks', value: 18, icon: FaBookmark },
-  ];
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -227,27 +272,20 @@ const UserProfile = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-3 border border-border rounded-lg">
-                      <FaHeart className="text-red-500" />
-                      <div>
-                        <p className="font-medium">Liked "Building Scalable Microservices"</p>
-                        <p className="text-sm text-foreground/60">2 hours ago</p>
+                    {activity.length === 0 && <p className="text-foreground/60">No recent activity.</p>}
+                    {activity.map((item, idx) => (
+                      <div key={idx} className="flex items-center space-x-3 p-3 border border-border rounded-lg">
+                        {/* Render activity type and details */}
+                        {/* Example: Like, Comment, Bookmark, etc. */}
+                        {item.type === 'like' && <FaHeart className="text-red-500" />}
+                        {item.type === 'comment' && <FaComment className="text-blue-500" />}
+                        {item.type === 'bookmark' && <FaBookmark className="text-yellow-500" />}
+                        <div>
+                          <p className="font-medium">{item.description}</p>
+                          <p className="text-sm text-foreground/60">{item.timeAgo}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 border border-border rounded-lg">
-                      <FaComment className="text-blue-500" />
-                      <div>
-                        <p className="font-medium">Commented on "AI-Powered Code Generation"</p>
-                        <p className="text-sm text-foreground/60">1 day ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 border border-border rounded-lg">
-                      <FaBookmark className="text-yellow-500" />
-                      <div>
-                        <p className="font-medium">Bookmarked "React Performance Optimization"</p>
-                        <p className="text-sm text-foreground/60">3 days ago</p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -259,7 +297,18 @@ const UserProfile = () => {
                   <CardTitle>Bookmarked Articles</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground/60">Your bookmarked articles will appear here.</p>
+                  {bookmarkedBlogs.length === 0 ? (
+                    <p className="text-foreground/60">Your bookmarked articles will appear here.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {bookmarkedBlogs.map((blog, idx) => (
+                        <div key={blog.id || idx} className="border-b border-border pb-2 mb-2">
+                          <div className="font-bold">{blog.title}</div>
+                          <div className="text-sm text-foreground/60">{blog.excerpt}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -270,7 +319,19 @@ const UserProfile = () => {
                   <CardTitle>Your Comments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground/60">Your comments will appear here.</p>
+                  {userComments.length === 0 ? (
+                    <p className="text-foreground/60">Your comments will appear here.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {userComments.map((comment, idx) => (
+                        <div key={comment.id || idx} className="border-b border-border pb-2 mb-2">
+                          <div className="font-bold">On: {comment.blogTitle}</div>
+                          <div className="text-sm text-foreground/60">{comment.content}</div>
+                          <div className="text-xs text-foreground/40">{comment.createdAt}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

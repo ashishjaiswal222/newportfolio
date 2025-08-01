@@ -9,7 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // Don't send cookies
+  withCredentials: true, // Enable cookies for session management
 });
 
 // Request interceptor to add Authorization header
@@ -26,16 +26,26 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle 401 globally
-    if (error.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401/403 errors
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      // Clear invalid tokens
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      // Optionally redirect to login
+      localStorage.removeItem('refreshToken');
+
+      // Redirect to login if not already on login page
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/admin')) {
+        window.location.href = '/';
+      }
     }
+
     return Promise.reject(error);
   }
 );

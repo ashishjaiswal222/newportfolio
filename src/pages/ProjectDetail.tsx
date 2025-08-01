@@ -497,6 +497,7 @@ const ProjectDetail = () => {
               totalRatings={project.totalRatings || 0}
               ratings={project.ratings || []}
               onRatingAdded={handleRatingAdded}
+              requireAuth={false} // Set to true if you want to require login for rating
             />
           </motion.div>
         </div>

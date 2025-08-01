@@ -1,15 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authAPI, User } from '@/services/auth.api';
+import { authAPI, User, LoginData, RegisterData, UpdateProfileData } from '@/services/auth.api';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  isAdmin: boolean;
+  login: (data: LoginData) => Promise<void>;
+  adminLogin: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>;
+  updateProfile: (data: UpdateProfileData) => Promise<void>;
   refreshUser: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,32 +33,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Try to refresh session on mount
+  // Check for stored tokens on mount
   useEffect(() => {
-    let isMounted = true;
     const initAuth = async () => {
       setIsLoading(true);
       try {
-        // Try to get user profile (will auto-refresh if needed)
-        const userData = await authAPI.getCurrentUser();
-        if (isMounted) setUser(userData.admin || userData.user);
+        const token = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        if (token && refreshToken) {
+          // Validate token format before making API call
+          if (token.split('.').length === 3) {
+            try {
+              // Try to get current user
+              const userData = await authAPI.getCurrentUser();
+              setUser(userData.user);
+            } catch (error: any) {
+              // If token is invalid (401 or 403), clear storage
+              if (error.response?.status === 401 || error.response?.status === 403) {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                setUser(null);
+              } else {
+                // For other errors, keep the token but set user to null
+                setUser(null);
+              }
+            }
+          } else {
+            // Invalid token format, clear storage
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            setUser(null);
+          }
+        } else {
+          // No tokens found, user is not authenticated
+          setUser(null);
+        }
       } catch (error: any) {
-        if (isMounted) setUser(null);
+        // Clear storage on any error
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        setUser(null);
       } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
       }
     };
+
     initAuth();
-    return () => { isMounted = false; };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (data: LoginData) => {
     setIsLoading(true);
     try {
-      await authAPI.login({ email, password });
-      // After login, fetch user profile
-      const userData = await authAPI.getCurrentUser();
-      setUser(userData.admin || userData.user);
+      const response = await authAPI.login(data);
+      localStorage.setItem('accessToken', response.token);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      setUser(response.user);
       toast({
         title: "Welcome back!",
         description: "You have been successfully logged in.",
@@ -70,23 +106,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const adminLogin = async (data: LoginData) => {
     setIsLoading(true);
     try {
-      await authAPI.logout();
+      const response = await authAPI.adminLogin(data);
+      localStorage.setItem('accessToken', response.token);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      setUser(response.user);
+      toast({
+        title: "Admin login successful!",
+        description: "Welcome to the admin panel.",
+      });
+    } catch (error: any) {
       setUser(null);
       toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
+        title: "Admin login failed",
+        description: error.response?.data?.message || "Invalid credentials",
+        variant: "destructive",
       });
-    } catch (error) {
-      setUser(null);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateProfile = async (data: any) => {
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    try {
+      const response = await authAPI.register(data);
+      toast({
+        title: "Registration successful!",
+        description: response.message,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.response?.data?.message || "Registration failed",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      // Continue with logout even if API call fails
+    } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (data: UpdateProfileData) => {
     try {
       const response = await authAPI.updateProfile(data);
       setUser(response.user);
@@ -104,27 +186,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Try to refresh session (e.g. after token refresh)
   const refreshUser = async () => {
     try {
       const userData = await authAPI.getCurrentUser();
-      setUser(userData.admin || userData.user);
+      setUser(userData.user);
     } catch (error) {
       setUser(null);
     }
   };
 
-  // Auto-refresh access token on 401 (optional: can be handled in api.ts as well)
-  // ...
+  const forgotPassword = async (email: string) => {
+    try {
+      const response = await authAPI.forgotPassword(email);
+      toast({
+        title: "Email sent",
+        description: response.message,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send email",
+        description: error.response?.data?.message || "Failed to send password reset email",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const resetPassword = async (token: string, password: string) => {
+    try {
+      const response = await authAPI.resetPassword(token, password);
+      toast({
+        title: "Password reset",
+        description: response.message,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.response?.data?.message || "Failed to reset password",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    try {
+      const response = await authAPI.verifyEmail(token);
+      toast({
+        title: "Email verified",
+        description: response.message,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Email verification failed",
+        description: error.response?.data?.message || "Failed to verify email",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   const value = {
     user,
     isLoading,
     isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
     login,
+    adminLogin,
+    register,
     logout,
     updateProfile,
     refreshUser,
+    forgotPassword,
+    resetPassword,
+    verifyEmail,
   };
 
   return (

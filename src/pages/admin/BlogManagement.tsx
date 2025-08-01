@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,44 +12,12 @@ import {
   FaArrowLeft, FaSave, FaTimes, FaImage, FaSearch
 } from 'react-icons/fa';
 import BlockNoteEditor from '@/components/editor/BlockNoteEditor';
+import { useBlogs } from '@/hooks/useBlogs';
+import { useToast } from '@/hooks/use-toast';
 
 const BlogManagement = () => {
-  const [blogs, setBlogs] = useState([
-    {
-      id: 1,
-      title: "Building Scalable Microservices with Node.js and Docker",
-      excerpt: "Learn how to architect and deploy microservices that can handle millions of requests with minimal latency.",
-      content: "Coming soon - Deep dive into microservices architecture...",
-      author: "Ashish Jaiswal",
-      date: "2024-12-15",
-      status: "published",
-      featured: true,
-      views: 1247,
-      readTime: "8 min read",
-      tags: ["Node.js", "Docker", "Microservices", "Architecture"],
-      category: "Backend Development",
-      seoTitle: "Building Scalable Microservices with Node.js and Docker - Complete Guide",
-      seoDescription: "Learn how to architect and deploy microservices using Node.js and Docker for enterprise-level applications.",
-      seoKeywords: "microservices, nodejs, docker, architecture, scalability"
-    },
-    {
-      id: 2,
-      title: "AI-Powered Code Generation: The Future of Software Development",
-      excerpt: "Exploring how AI tools like GitHub Copilot and ChatGPT are revolutionizing the way we write code.",
-      content: "Coming soon - AI in software development...",
-      author: "Ashish Jaiswal",
-      date: "2024-12-10",
-      status: "published",
-      featured: true,
-      views: 892,
-      readTime: "6 min read",
-      tags: ["AI", "Machine Learning", "Development Tools", "Future Tech"],
-      category: "Artificial Intelligence",
-      seoTitle: "AI-Powered Code Generation: Revolutionizing Software Development",
-      seoDescription: "Discover how AI tools are transforming software development with automated code generation.",
-      seoKeywords: "ai, code generation, github copilot, software development, automation"
-    }
-  ]);
+  const { blogs, isLoading, createBlog, updateBlog, deleteBlog, refetch } = useBlogs();
+  const { toast } = useToast();
 
   const [editingBlog, setEditingBlog] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -77,45 +45,39 @@ const BlogManagement = () => {
     'Software Engineering'
   ];
 
-  const handleSaveBlog = () => {
-    if (editingBlog) {
-      setBlogs(blogs.map(blog => 
-        blog.id === editingBlog.id 
-          ? { 
-              ...blog, 
-              ...formData,
-              tags: formData.tags.split(',').map(tag => tag.trim()),
-              date: new Date().toISOString().split('T')[0]
-            }
-          : blog
-      ));
-      setEditingBlog(null);
-    } else {
-      const newBlog = {
-        id: Date.now(),
-        ...formData,
-        author: 'Ashish Jaiswal',
-        date: new Date().toISOString().split('T')[0],
-        status: 'draft',
-        views: 0,
-        readTime: '5 min read',
-        tags: formData.tags.split(',').map(tag => tag.trim())
+  const handleSaveBlog = async () => {
+    try {
+      const blogData = {
+        title: formData.title,
+        excerpt: formData.excerpt,
+        content: formData.content,
+        categories: [formData.category],
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        status: 'draft'
       };
-      setBlogs([newBlog, ...blogs]);
-      setShowAddForm(false);
+
+      if (editingBlog) {
+        await updateBlog(editingBlog.id, blogData);
+        setEditingBlog(null);
+      } else {
+        await createBlog(blogData);
+        setShowAddForm(false);
+      }
+      
+      setFormData({
+        title: '',
+        excerpt: '',
+        content: '',
+        tags: '',
+        category: '',
+        featured: false,
+        seoTitle: '',
+        seoDescription: '',
+        seoKeywords: ''
+      });
+    } catch (error) {
+      console.error('Error saving blog:', error);
     }
-    
-    setFormData({
-      title: '',
-      excerpt: '',
-      content: '',
-      tags: '',
-      category: '',
-      featured: false,
-      seoTitle: '',
-      seoDescription: '',
-      seoKeywords: ''
-    });
   };
 
   const handleEditBlog = (blog) => {
@@ -124,30 +86,36 @@ const BlogManagement = () => {
       title: blog.title,
       excerpt: blog.excerpt,
       content: blog.content,
-      tags: blog.tags.join(', '),
-      category: blog.category,
-      featured: blog.featured,
+      tags: blog.tags ? blog.tags.join(', ') : '',
+      category: blog.categories ? blog.categories[0] : '',
+      featured: blog.isPinned || false,
       seoTitle: blog.seoTitle || '',
       seoDescription: blog.seoDescription || '',
       seoKeywords: blog.seoKeywords || ''
     });
   };
 
-  const handleDeleteBlog = (id) => {
-    setBlogs(blogs.filter(blog => blog.id !== id));
+  const handleDeleteBlog = async (id) => {
+    try {
+      await deleteBlog(id);
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+    }
   };
 
-  const toggleBlogStatus = (id) => {
-    setBlogs(blogs.map(blog => 
-      blog.id === id 
-        ? { ...blog, status: blog.status === 'published' ? 'draft' : 'published' }
-        : blog
-    ));
+  const toggleBlogStatus = async (id) => {
+    try {
+      const blog = blogs.find(b => b.id === id);
+      const newStatus = blog.status === 'published' ? 'draft' : 'published';
+      await updateBlog(id, { status: newStatus });
+    } catch (error) {
+      console.error('Error toggling blog status:', error);
+    }
   };
 
   const filteredBlogs = blogs.filter(blog => {
     const matchesSearch = blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.category.toLowerCase().includes(searchTerm.toLowerCase());
+                         (blog.categories && blog.categories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())));
     const matchesStatus = filterStatus === 'all' || blog.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -369,8 +337,14 @@ const BlogManagement = () => {
         )}
 
         {/* Blog Posts List */}
-        <div className="grid grid-cols-1 gap-6">
-          {filteredBlogs.map((blog, index) => (
+        {isLoading ? (
+          <Card className="cyber-border p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-foreground/70">Loading blogs...</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {filteredBlogs.map((blog, index) => (
             <motion.div
               key={blog.id}
               initial={{ opacity: 0, y: 20 }}
@@ -397,15 +371,15 @@ const BlogManagement = () => {
                     <div className="flex items-center text-sm text-foreground/60 space-x-4">
                       <div className="flex items-center space-x-1">
                         <FaCalendar />
-                        <span>{blog.date}</span>
+                        <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <FaClock />
-                        <span>{blog.readTime}</span>
+                        <span>{blog.readTime || '5 min read'}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <FaEye />
-                        <span>{blog.views} views</span>
+                        <span>{blog.views || 0} views</span>
                       </div>
                     </div>
                   </div>
@@ -444,14 +418,15 @@ const BlogManagement = () => {
                   ))}
                 </div>
                 <div className="text-xs text-foreground/50">
-                  Category: {blog.category} | SEO Score: {Math.floor(Math.random() * 20) + 80}/100
+                  Category: {blog.categories ? blog.categories.join(', ') : 'Uncategorized'} | SEO Score: {Math.floor(Math.random() * 20) + 80}/100
                 </div>
               </Card>
             </motion.div>
           ))}
-        </div>
+          </div>
+        )}
 
-        {filteredBlogs.length === 0 && (
+        {!isLoading && filteredBlogs.length === 0 && (
           <Card className="cyber-border p-12 text-center">
             <h3 className="font-orbitron text-xl font-bold text-foreground/60 mb-2">
               No blogs found
